@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Haley</RootNamespace>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Authors>TheHaleyProject</Authors>
+    <Company>TheHaleyProject</Company>
+    <AssemblyName>Haley.DB</AssemblyName>
+    <Copyright>Haley 2024</Copyright>
+    <SignAssembly>True</SignAssembly>
+    <AssemblyOriginatorKeyFile>D:\Projects\repos\HaleyProject\HaleyProject\HaleyProject.snk</AssemblyOriginatorKeyFile>
+    <PackageIcon>Haley.png</PackageIcon>
+    <Version>0.0.1</Version>
+    <IncludeSymbols>True</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\HaleyRest\HaleyRest\Haley.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
+
+</Project>
