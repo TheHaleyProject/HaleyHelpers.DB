@@ -6,7 +6,7 @@ Console.WriteLine("Hello, World!");
 
 // ####### MS SQL
 
-var cstr = $@"server=srv-db07;database=CDEToEngHub;uid=CDEUser;pwd=C3b%N7zQ1j@U5xK; TrustServerCertificate=True;";
+var cstr = $@"server=srv-db07;database=;uid=CDEUser;pwd=; TrustServerCertificate=True;";
 var res = MssqlHandler.ExecuteReader(cstr, "SELECT name FROM master.dbo.sysdatabases", null).Result;
 var result = res.Select(true).Convert(null);
 
