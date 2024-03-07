@@ -27,7 +27,7 @@ namespace Haley.Models {
 
                 //Don't load the first one directly. It will not capture other results.
                 while (!reader.IsClosed) {
-                    await reader.ReadAsync();
+                    //await reader.ReadAsync();
                     //Read all tables and return the final one.
                     DataTable dt = new DataTable();
                     dt.Load(reader);

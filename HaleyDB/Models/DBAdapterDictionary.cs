@@ -91,15 +91,13 @@ namespace Haley.Models {
         }
 
         public static (TargetDB dbtype, string cstr) ParseConnectionString(IConfigurationRoot cfgRoot, string json_key, string dbname = null) {
-            try {
-                if (cfgRoot == null) return (TargetDB.unknown, null);
-                if (json_key == null) throw new ArgumentException("Json Key cannot be empty when parsing from Configuration Root");
-                string conStr = cfgRoot.GetConnectionString(json_key); //From the configuration root.
-                var tuple1 = SanitizeConnectionString(conStr, dbname);
-                return tuple1;
-            } catch (Exception) {
-                return (TargetDB.unknown, null);
-            }
+            if (cfgRoot == null) return (TargetDB.unknown, null);
+            if (json_key == null) throw new ArgumentException("Json Key cannot be empty when parsing from Configuration Root");
+            string conStr = cfgRoot.GetConnectionString(json_key); //From the configuration root.
+            if (conStr == null) throw new ArgumentException($@"Unable to find any connection string in the Configuration root Json with key {json_key}");
+
+            var tuple1 = SanitizeConnectionString(conStr, dbname);
+            return tuple1;
         }
 
         #endregion Global Methods
@@ -147,18 +145,22 @@ namespace Haley.Models {
 
         private DBAdapterDictionary Add(string key, string connectionStr, TargetDB dbtype, string json_key, out DBAdapter adapter, ILogger logger = null) {
             if (key == null) throw new ArgumentNullException("key");
-            if (!ContainsKey(key)) {
-                throw new ArgumentException("Key already exists.");
-            }
-
+           
             // In case dbtype is unknown then it should not register as we don't know which database handler to use.
             if (dbtype == TargetDB.unknown) {
                 throw new ArgumentException("Missing: Value for DBTYPE which is needed to decide the type of database to connect to.");
             }
-
             adapter = new DBAdapter(connectionStr, json_key, dbtype);
+
+            if (ContainsKey(key)) {
+                //remove the adapter
+                if (!TryRemove(key, out _)) {
+                    throw new ArgumentException($@"Key {key} already exists and unable to replace it as well.");
+                }; //remove the item.
+            }
+
             if (TryAdd(key, adapter)) {
-                return this;
+                return this; //Trying to add the key and adapter here
             }
             throw new ArgumentException("Unable to add DBAdapter to dictionary.");
         }

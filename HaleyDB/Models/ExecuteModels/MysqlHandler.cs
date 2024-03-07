@@ -26,7 +26,7 @@ namespace Haley.Models {
 
                 //Don't load the first result directly. It will not capture other results.
                 while (!reader.IsClosed) {
-                    await reader.ReadAsync();
+                    //await reader.ReadAsync(); //This actually jumps to next table. So dont' read it.. directly start loading them in to data table both has same function
                     DataTable dt = new DataTable();
                     dt.Load(reader);
                     ds.Tables.Add(dt);
