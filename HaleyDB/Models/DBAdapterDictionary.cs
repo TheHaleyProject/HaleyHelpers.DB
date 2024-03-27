@@ -10,7 +10,7 @@ using System.Security.Cryptography;
 
 namespace Haley.Models {
 
-    public delegate void AdapterUpdatedEvent(List<string> keys);
+    public delegate void DictionaryUpdatedEvent();
 
     public class DBAdapterDictionary : ConcurrentDictionary<string, DBAdapter> {
         const string DBA_ENTRIES = "DbaEntries";
@@ -23,7 +23,7 @@ namespace Haley.Models {
         public DBAdapterDictionary() {
         }
 
-        public event AdapterUpdatedEvent AdapterUpdated;
+        public event DictionaryUpdatedEvent Updated;
         #region Global Methods
 
         public static IConfigurationRoot GenerateConfigurationRoot(string[] jsonPaths = null, string basePath = null) {
@@ -237,6 +237,7 @@ namespace Haley.Models {
 
         public DBAdapterDictionary UpdateAdapter() {
             Configure(true);
+            Updated?.Invoke();
             return this;
         }
         #endregion Connection Utils Management
