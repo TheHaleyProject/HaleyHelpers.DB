@@ -48,25 +48,36 @@ namespace Haley.Models {
                 //INITIATE CONNECTION
                 logger?.LogInformation($@"opening connection - {targetCon}");
 
-                //await dsource.OpenConnectionAsync();
-                var cmd = conn.CreateCommand(query);
-                logger?.LogInformation("Creating query");
+                ////If schema name is available, try to set search path for this connection.
+                //if (!string.IsNullOrWhiteSpace(schemaname)) {
+                //    logger?.LogInformation($@"Schema name found - {schemaname}");
+                //    var searchPathCmd = MakeCommand(conn, $@"set search_path to {schemaname}",logger);
+                //    var status = await searchPathCmd.ExecuteNonQueryAsync(); //Let us first set the search path for this.
+                //}
 
-                //ADD PARAMETERS IF REQUIRED
-                if (parameters.Length > 0) {
-                    // NpgsqlParameter[] msp = new NpgsqlParameter[parameters.Length];
-                    for (int i = 0; i < parameters.Length; i++) {
-                        var key = parameters[i].key;
-                        var msp = new NpgsqlParameter(key, parameters[i].value);
-                        if (!key.StartsWith("@")) { key = "@" + key; }
-                        cmd.Parameters.Add(msp);
-                    }
-                }
+                var cmd = MakeCommand(conn, query, logger, parameters);
                 logger?.LogInformation("About to execute");
+
                 var result = await processor.Invoke(cmd);
                 logger?.LogInformation("Connection closed");
                 return result;
             }
+        }
+
+        private static NpgsqlCommand MakeCommand(NpgsqlDataSource conn,  string query, ILogger logger, params (string key, object value)[] parameters) {
+            //await dsource.OpenConnectionAsync();
+            var cmd = conn.CreateCommand(query);
+            //ADD PARAMETERS IF REQUIRED
+            if (parameters.Length > 0) {
+                // NpgsqlParameter[] msp = new NpgsqlParameter[parameters.Length];
+                for (int i = 0; i < parameters.Length; i++) {
+                    var key = parameters[i].key;
+                    var msp = new NpgsqlParameter(key, parameters[i].value);
+                    if (!key.StartsWith("@")) { key = "@" + key; }
+                    cmd.Parameters.Add(msp);
+                }
+            }
+            return cmd;
         }
     }
 }

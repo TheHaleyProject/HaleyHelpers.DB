@@ -2,26 +2,44 @@
 using Haley.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Org.BouncyCastle.Asn1.Esf;
 using System.Collections.Concurrent;
+using System.Configuration;
 using System.Data;
+using System.Security.Cryptography;
 
 namespace Haley.Models {
 
-    public class DBAdapterDictionary : ConcurrentDictionary<string, DBAdapter> {
-        private IConfigurationRoot _cfgRoot;
-        private const string DBTYPE_KEY = "dbtype=";
+    public delegate void AdapterUpdatedEvent(List<string> keys);
 
+    public class DBAdapterDictionary : ConcurrentDictionary<string, DBAdapter> {
+        const string DBA_ENTRIES = "DbaEntries";
+        const string DBNAME_KEY = "database=";
+        const string DBTYPE_KEY = "dbtype=";
+        const string SEARCHPATH_KEY = "searchpath=";
+
+        private IConfigurationRoot _cfgRoot;
+        ConcurrentDictionary<string, (string cstr, TargetDB dbtype)> connectionstrings = new ConcurrentDictionary<string, (string cstr, TargetDB dbtype)>();
         public DBAdapterDictionary() {
         }
 
+        public event AdapterUpdatedEvent AdapterUpdated;
         #region Global Methods
 
-        public static IConfigurationRoot GenerateConfigurationRoot(string[] jsonPaths, string basePath = null) {
+        public static IConfigurationRoot GenerateConfigurationRoot(string[] jsonPaths = null, string basePath = null) {
             var builder = new ConfigurationBuilder();
+            var jsonlist = jsonPaths?.ToList() ?? new List<string>();
             if (basePath == null) basePath = AssemblyUtils.GetBaseDirectory(); ; //Hopefully both interface DLL and the main app dll are in same directory where the json files are present.
             builder.SetBasePath(basePath); // let us load the file from a specific directory
 
-            foreach (var path in jsonPaths) {
+            if (jsonlist == null || jsonlist.Count < 1) {
+                jsonlist = new List<string>() {"appsettings", "connections" }; //add these two default jsons.
+            }
+
+            if (!jsonlist.Contains("appsettings")) jsonlist.Add("appsettings");
+            if (!jsonlist.Contains("connections")) jsonlist.Add("connections");
+
+            foreach (var path in jsonlist) {
                 if (path == null) continue;
                 string finalFilePath = path.Trim();
                 if (!finalFilePath.EndsWith(".json", StringComparison.OrdinalIgnoreCase) && finalFilePath != null) {
@@ -41,7 +59,39 @@ namespace Haley.Models {
             return builder.Build();
         }
 
-        private static (TargetDB dbtype, string cstr) SplitConnectionString(string connectionString) {
+        public static string ReplaceParameter(string connectionstring, string key, string value) {
+            if (string.IsNullOrWhiteSpace(connectionstring) || string.IsNullOrWhiteSpace(value)) return connectionstring;
+            //If user specifies a database, then remove the old value (if exists) and add the new database value
+            string conStr = connectionstring;
+
+            //REMOVE EXISTING
+            if (conStr.Contains(key, StringComparison.OrdinalIgnoreCase)) {
+                //remove that part.
+                var allparts = conStr.Split(";");
+                conStr = string.Join(";", allparts.Where(q => !q.Trim().StartsWith(key)).ToArray());
+            }
+
+            //ADD NEW VALUE.
+            conStr += $@";{key}{value}";
+            return conStr;
+        }
+
+        public static string GetDBName(string connectionstring) {
+            if (string.IsNullOrWhiteSpace(connectionstring)) return string.Empty;
+            //If user specifies a database, then remove the old value (if exists) and add the new database value
+            string conStr = connectionstring;
+            if (conStr.Contains(DBNAME_KEY, StringComparison.OrdinalIgnoreCase)) {
+                //remove that part.
+                var allparts = conStr.Split(";");
+                var kvp=  allparts.FirstOrDefault(q => q.Trim().StartsWith(DBNAME_KEY));
+                if (kvp != null) {
+                   return kvp.Split("=")[1];
+                }
+            }
+            return string.Empty;
+        }
+
+        private static (string cstr, TargetDB dbtype) SplitConnectionString(string connectionString) {
             string conStr = connectionString;
             TargetDB targetType = TargetDB.unknown;
             //Fetch and remove the dbtype.
@@ -49,7 +99,7 @@ namespace Haley.Models {
                 //remove that part.
                 var allparts = conStr.Split(";");
 
-                switch (Convert.ToString(allparts.FirstOrDefault(q => q.StartsWith(DBTYPE_KEY))?.Replace(DBTYPE_KEY, ""))) {
+                switch (Convert.ToString(allparts.FirstOrDefault(q => q.Trim().StartsWith(DBTYPE_KEY))?.Replace(DBTYPE_KEY, ""))) {
                     case "maria":
                     targetType = TargetDB.maria;
                     break;
@@ -67,99 +117,95 @@ namespace Haley.Models {
                     targetType = TargetDB.mysql;
                     break;
                 }
-                conStr = string.Join(";", allparts.Where(q => !q.StartsWith(DBTYPE_KEY)).ToArray()); //Without the dbtype.
+                conStr = string.Join(";", allparts.Where(q => !q.Trim().StartsWith(DBTYPE_KEY)).ToArray()); //Without the dbtype.
             }
-            return (targetType, conStr);
+            return (conStr, targetType);
         }
 
-        public static (TargetDB dbtype, string cstr) SanitizeConnectionString(string connectionstring, string dbname = null) {
-            string conStr = connectionstring;
-            var tuple1 = SplitConnectionString(conStr); // to remove the dbtype key.
-            conStr = tuple1.cstr;
-
-            //If user specifies a database, then remove the old value (if exists) and add the new database value
-            if (dbname != null && conStr != null) {
-                //If it already contains the databasevalue, delete it first.
-                if (conStr.Contains("database=", StringComparison.OrdinalIgnoreCase)) {
-                    //remove that part.
-                    var allparts = conStr.Split(";");
-                    conStr = string.Join(";", allparts.Where(q => !q.StartsWith("database=")).ToArray());
-                }
-                conStr += $@";database={dbname}";
-            }
-            return (tuple1.dbtype, conStr);
-        }
-
-        public static (TargetDB dbtype, string cstr) ParseConnectionString(IConfigurationRoot cfgRoot, string json_key, string dbname = null) {
-            if (cfgRoot == null) return (TargetDB.unknown, null);
-            if (json_key == null) throw new ArgumentException("Json Key cannot be empty when parsing from Configuration Root");
-            string conStr = cfgRoot.GetConnectionString(json_key); //From the configuration root.
-            if (conStr == null) throw new ArgumentException($@"Unable to find any connection string in the Configuration root Json with key {json_key}");
-
-            var tuple1 = SanitizeConnectionString(conStr, dbname);
-            return tuple1;
-        }
 
         #endregion Global Methods
 
         #region Add or Generate Connections
 
-        public DBAdapterDictionary Add(Enum key, string connectionStr, ILogger logger = null) {
-            return Add(key, connectionStr, out _, logger);
+        public DBAdapterDictionary Configure() {
+            return Configure(false);
         }
 
-        public DBAdapterDictionary Add(string key, string connectionStr, ILogger logger = null) {
-            return Add(key, connectionStr, out _, logger);
+        public bool IsShaValid(string adapterKey,string sha) {
+            if (!this.ContainsKey(adapterKey)) return false;
+            return this[adapterKey].Entry.Sha == sha;
         }
 
-        public DBAdapterDictionary Add(Enum key, string connectionStr, out DBAdapter adapter, ILogger logger = null) {
-            if (key == null) throw new ArgumentNullException("key");
-            return Add(key.GetKey(), connectionStr, out adapter, logger);
+        DBAdapterDictionary Configure(bool updateOnly = false) {
+            ParseConnectionStrings(); //Load all latest connection string information into memory.
+            if (connectionstrings == null) throw new ArgumentNullException(nameof(connectionstrings));
+            //Supposed to read the json files and then generate all the adapters.
+            try {
+                var root = GetConfigurationRoot();
+                var entries = root.GetSection(DBA_ENTRIES).Get<DbaEntry[]>(); //Fetch all entry information.
+
+                foreach (var entry in entries) {
+
+                    if (string.IsNullOrWhiteSpace(entry.AdapterKey) || string.IsNullOrWhiteSpace(entry.ConnectionKey)) continue;
+                    //based upon the connection string key in the entry, fetch the corresponding Connection string and it's dbtype from the already parsed connection strings.
+                    if (connectionstrings.TryGetValue(entry.ConnectionKey, out var entryData)) {
+                        entry.DBType = entryData.dbtype;
+                        //If user didn't specify dbname , then take it from the connectionstring itself.
+                        var constr = entryData.cstr;
+                        if (!string.IsNullOrWhiteSpace(entry.DBName)) {
+                            //replace this name in the connection string.
+                            constr = ReplaceParameter(constr, DBNAME_KEY, entry.DBName);
+                        } else {
+                            //Let us try to fetch the dbname from the input.
+                            entry.DBName = GetDBName(constr);
+                        }
+                        entry.ConnectionString = constr;
+
+                        //For postgres, add schema as well
+                        if (entry.DBType == TargetDB.pgsql && !string.IsNullOrWhiteSpace(entry.SchemaName)) {
+                            entry.ConnectionString = ReplaceParameter(entry.ConnectionString, SEARCHPATH_KEY, entry.SchemaName);
+                        }
+
+                        // In case dbtype is unknown then it should not register as we don't know which database handler to use.
+                        if (entry.DBType == TargetDB.unknown) {
+                            throw new ArgumentException($@"Missing: Value for DBTYPE which is needed to decide the type of database to connect to. Entry {entry.ConnectionKey} - {entry.AdapterKey}");
+                        }
+
+                        if (this.ContainsKey(entry.AdapterKey) && updateOnly) {
+                            //Now this will be an update.
+                            this[entry.AdapterKey].UpdateDBEntry(entry);
+                        } else {
+                            Add(entry);
+                        }
+                    }
+                }
+            } catch (Exception) {
+                throw;
+            }
+            return this;
         }
 
-        public DBAdapterDictionary Add(string key, string connectionStr, out DBAdapter adapter, ILogger logger = null) {
-            var tuple1 = SanitizeConnectionString(connectionStr);
-            return Add(key, tuple1.cstr, tuple1.dbtype, null, out adapter, logger);
+        void ParseConnectionStrings() {
+            var root = GetConfigurationRoot();
+            var allconnection = root.GetSection("ConnectionStrings");
+            connectionstrings = new ConcurrentDictionary<string, (string cstr, TargetDB dbtype)>(); //reset.
+            foreach (var item in allconnection.GetChildren()) {
+                connectionstrings.TryAdd(item.Key, SplitConnectionString(item.Value));
+            }
         }
-
-        public DBAdapterDictionary Generate(Enum key, string json_key, string dbname = null, ILogger logger = null) {
-            return Generate(key, json_key, out _, dbname, logger);
-        }
-
-        public DBAdapterDictionary Generate(string key, string json_key, string dbname = null, ILogger logger = null) {
-            return Generate(key, json_key, out _, dbname, logger);
-        }
-
-        public DBAdapterDictionary Generate(Enum key, string json_key, out DBAdapter adapter, string dbname = null, ILogger logger = null) {
-            if (key == null) throw new ArgumentNullException("key");
-            return Generate(key.GetKey(), json_key, out adapter, dbname, logger);
-        }
-
-        public DBAdapterDictionary Generate(string key, string json_key, out DBAdapter adapter, string dbname = null, ILogger logger = null) {
-            if (GetConfigurationRoot() == null) throw new ArgumentException($@"Internal Config root is empty. Hint: Look at {nameof(SetConfigurationRoot)}");
-            var tuple1 = ParseConnectionString(GetConfigurationRoot(), json_key, dbname);
-            return Add(key, tuple1.cstr, tuple1.dbtype, json_key, out adapter, logger);
-        }
-
         #endregion Add or Generate Connections
 
-        private DBAdapterDictionary Add(string key, string connectionStr, TargetDB dbtype, string json_key, out DBAdapter adapter, ILogger logger = null) {
-            if (key == null) throw new ArgumentNullException("key");
-           
-            // In case dbtype is unknown then it should not register as we don't know which database handler to use.
-            if (dbtype == TargetDB.unknown) {
-                throw new ArgumentException("Missing: Value for DBTYPE which is needed to decide the type of database to connect to.");
-            }
-            adapter = new DBAdapter(connectionStr, json_key, dbtype);
+        DBAdapterDictionary Add(DbaEntry entry) {
+            var adapter = new DBAdapter(entry);
 
-            if (ContainsKey(key)) {
+            if (ContainsKey(entry.AdapterKey)) {
                 //remove the adapter
-                if (!TryRemove(key, out _)) {
-                    throw new ArgumentException($@"Key {key} already exists and unable to replace it as well.");
+                if (!TryRemove(entry.AdapterKey, out _)) {
+                    throw new ArgumentException($@"Key {entry.AdapterKey} already exists and unable to replace it as well.");
                 }; //remove the item.
             }
 
-            if (TryAdd(key, adapter)) {
+            if (TryAdd(entry.AdapterKey, adapter)) {
                 return this; //Trying to add the key and adapter here
             }
             throw new ArgumentException("Unable to add DBAdapter to dictionary.");
@@ -168,6 +214,10 @@ namespace Haley.Models {
         #region Configuration Root Management
 
         public IConfigurationRoot GetConfigurationRoot() {
+            if (_cfgRoot == null) {
+                //Set default configuration root.
+                SetConfigurationRoot(null, null);
+            }
             return _cfgRoot;
         }
 
@@ -186,24 +236,9 @@ namespace Haley.Models {
         #region Connection Utils Management
 
         public DBAdapterDictionary UpdateAdapter() {
-            return UpdateAdapter(_cfgRoot);
-        }
-
-        public DBAdapterDictionary UpdateAdapter(IConfigurationRoot configRoot) {
-            if (configRoot == null) throw new ArgumentNullException(nameof(configRoot));
-            foreach (var kvp in this) {
-                try {
-                    var info = kvp.Value.GetInfo();
-                    var con_tuple = ParseConnectionString(configRoot, info.key, info.dbName);
-                    kvp.Value.UpdateConnectionString(con_tuple.cstr, con_tuple.dbtype);
-                } catch (Exception) {
-                    //Don't throw exception while updating adapter.
-                    continue;
-                }
-            }
+            Configure(true);
             return this;
         }
-
         #endregion Connection Utils Management
     }
 }

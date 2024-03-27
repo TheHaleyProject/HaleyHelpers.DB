@@ -2,13 +2,19 @@
 using Haley.Models;
 using Haley.Extensions;
 
+
 Console.WriteLine("Hello, World!");
 
+var dba = new DBAdapterDictionary();
+dba.Configure();
+
+var result = (await dba["dbsql"].ExecuteReader("select * from object limit 10", null)).Select(true).Convert(null);
+Console.WriteLine("OMG");
 // ####### MS SQL
 
-var cstr = $@"server=srv-db07;database=;uid=CDEUser;pwd=; TrustServerCertificate=True;";
-var res = MssqlHandler.ExecuteReader(cstr, "SELECT name FROM master.dbo.sysdatabases", null).Result;
-var result = res.Select(true).Convert(null);
+//var cstr = $@"server=srv-db07;database=;uid=CDEUser;pwd=; TrustServerCertificate=True;";
+//var res = MssqlHandler.ExecuteReader(cstr, "SELECT name FROM master.dbo.sysdatabases", null).Result;
+//var result = res.Select(true).Convert(null);
 
 
 // ####### MYSQL
