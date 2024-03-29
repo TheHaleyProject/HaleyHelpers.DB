@@ -137,11 +137,11 @@ namespace Haley.Models {
         }
 
         DBAdapterDictionary Configure(bool updateOnly = false) {
-            ParseConnectionStrings(); //Load all latest connection string information into memory.
+            ParseConnectionStrings(updateOnly); //Load all latest connection string information into memory.
             if (connectionstrings == null) throw new ArgumentNullException(nameof(connectionstrings));
             //Supposed to read the json files and then generate all the adapters.
             try {
-                var root = GetConfigurationRoot();
+                var root = GetConfigurationRoot(updateOnly);
                 var entries = root.GetSection(DBA_ENTRIES).Get<DbaEntry[]>(); //Fetch all entry information.
 
                 foreach (var entry in entries) {
@@ -185,8 +185,8 @@ namespace Haley.Models {
             return this;
         }
 
-        void ParseConnectionStrings() {
-            var root = GetConfigurationRoot();
+        void ParseConnectionStrings(bool reload = false) {
+            var root = GetConfigurationRoot(reload);
             var allconnection = root.GetSection("ConnectionStrings");
             connectionstrings = new ConcurrentDictionary<string, (string cstr, TargetDB dbtype)>(); //reset.
             foreach (var item in allconnection.GetChildren()) {
@@ -213,16 +213,19 @@ namespace Haley.Models {
 
         #region Configuration Root Management
 
-        public IConfigurationRoot GetConfigurationRoot() {
+        public IConfigurationRoot GetConfigurationRoot(bool reload = false) {
             if (_cfgRoot == null) {
                 //Set default configuration root.
                 SetConfigurationRoot(null, null);
+            } else {
+                if (reload) _cfgRoot.Reload();
             }
             return _cfgRoot;
         }
 
         public DBAdapterDictionary SetConfigurationRoot(string[] jsonPaths, string basePath = null) {
-            return SetConfigurationRoot(GenerateConfigurationRoot(jsonPaths, basePath));
+            SetConfigurationRoot(GenerateConfigurationRoot(jsonPaths, basePath));
+            return this;
         }
 
         public DBAdapterDictionary SetConfigurationRoot(IConfigurationRoot cfgRoot) {
