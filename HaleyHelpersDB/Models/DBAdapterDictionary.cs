@@ -13,6 +13,8 @@ namespace Haley.Models {
     public delegate void DictionaryUpdatedEvent();
 
     public class DBAdapterDictionary : ConcurrentDictionary<string, DBAdapter> {
+        public static DBAdapterDictionary Instance = new DBAdapterDictionary(); //A singleton
+
         const string DBA_ENTRIES = "DbaEntries";
         const string DBNAME_KEY = "database=";
         const string DBTYPE_KEY = "dbtype=";

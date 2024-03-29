@@ -8,18 +8,18 @@
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Authors>TheHaleyProject</Authors>
     <Company>TheHaleyProject</Company>
-    <AssemblyName>Haley.DB</AssemblyName>
+    <AssemblyName>Haley.Helpers.DB</AssemblyName>
     <Copyright>Haley 2024</Copyright>
     <SignAssembly>True</SignAssembly>
     <AssemblyOriginatorKeyFile>D:\Projects\repos\HaleyProject\HaleyProject\HaleyProject.snk</AssemblyOriginatorKeyFile>
     <PackageIcon>Haley.png</PackageIcon>
-    <Version>0.0.7</Version>
+    <Version>0.0.2</Version>
     <IncludeSymbols>True</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="..\..\HaleyRest\HaleyRest\Haley.png">
+    <None Include="..\..\HaleyProject\Haley.png">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
