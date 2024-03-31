@@ -75,7 +75,7 @@ namespace Haley.Models {
             if (conStr.Contains(key, StringComparison.OrdinalIgnoreCase)) {
                 //remove that part.
                 var allparts = conStr.Split(";");
-                conStr = string.Join(";", allparts.Where(q => !q.Trim().StartsWith(key)).ToArray());
+                conStr = string.Join(";", allparts.Where(q => !q.Trim().StartsWith(key, StringComparison.OrdinalIgnoreCase)).ToArray());
             }
 
             //ADD NEW VALUE.
@@ -90,7 +90,7 @@ namespace Haley.Models {
             if (conStr.Contains(DBNAME_KEY, StringComparison.OrdinalIgnoreCase)) {
                 //remove that part.
                 var allparts = conStr.Split(";");
-                var kvp=  allparts.FirstOrDefault(q => q.Trim().StartsWith(DBNAME_KEY));
+                var kvp=  allparts.FirstOrDefault(q => q.Trim().StartsWith(DBNAME_KEY,StringComparison.OrdinalIgnoreCase));
                 if (kvp != null) {
                    return kvp.Split("=")[1];
                 }
@@ -106,7 +106,7 @@ namespace Haley.Models {
                 //remove that part.
                 var allparts = conStr.Split(";");
 
-                switch (Convert.ToString(allparts.FirstOrDefault(q => q.Trim().StartsWith(DBTYPE_KEY))?.Replace(DBTYPE_KEY, ""))) {
+                switch (Convert.ToString(allparts.FirstOrDefault(q => q.Trim().StartsWith(DBTYPE_KEY, StringComparison.OrdinalIgnoreCase))?.Replace(DBTYPE_KEY, "",StringComparison.OrdinalIgnoreCase))) {
                     case "maria":
                     targetType = TargetDB.maria;
                     break;
@@ -124,7 +124,7 @@ namespace Haley.Models {
                     targetType = TargetDB.mysql;
                     break;
                 }
-                conStr = string.Join(";", allparts.Where(q => !q.Trim().StartsWith(DBTYPE_KEY)).ToArray()); //Without the dbtype.
+                conStr = string.Join(";", allparts.Where(q => !q.Trim().StartsWith(DBTYPE_KEY,StringComparison.OrdinalIgnoreCase)).ToArray()); //Without the dbtype.
             }
             return (conStr, targetType);
         }
@@ -139,7 +139,7 @@ namespace Haley.Models {
         }
 
         public bool IsShaValid(string adapterKey,string sha) {
-            if (!this.ContainsKey(adapterKey)) return false;
+            if (string.IsNullOrWhiteSpace(adapterKey) || string.IsNullOrWhiteSpace(sha) || !this.ContainsKey(adapterKey)) return false;
             return this[adapterKey].Entry.Sha == sha;
         }
 
@@ -155,10 +155,10 @@ namespace Haley.Models {
 
                     if (string.IsNullOrWhiteSpace(entry.AdapterKey) || string.IsNullOrWhiteSpace(entry.ConnectionKey)) continue;
                     //based upon the connection string key in the entry, fetch the corresponding Connection string and it's dbtype from the already parsed connection strings.
-                    if (connectionstrings.TryGetValue(entry.ConnectionKey, out var entryData)) {
-                        entry.DBType = entryData.dbtype;
+                    if (connectionstrings.TryGetValue(entry.ConnectionKey, out var connectionData)) {
+                        entry.DBType = connectionData.dbtype;
                         //If user didn't specify dbname , then take it from the connectionstring itself.
-                        var constr = entryData.cstr;
+                        var constr = connectionData.cstr;
                         if (!string.IsNullOrWhiteSpace(entry.DBName)) {
                             //replace this name in the connection string.
                             constr = ReplaceParameter(constr, DBNAME_KEY, entry.DBName);
