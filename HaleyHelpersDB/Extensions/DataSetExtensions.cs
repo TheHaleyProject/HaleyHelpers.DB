@@ -12,7 +12,7 @@ using Microsoft.Extensions.Configuration;
 using Haley.Enums;
 using System.Reflection.Metadata.Ecma335;
 
-namespace Haley.Extensions {
+namespace Haley.Utils {
     public static class DataSetExtensions {
         public static List<Dictionary<string, object>> Convert(this DataTable dt, ILogger logger) {
             try {

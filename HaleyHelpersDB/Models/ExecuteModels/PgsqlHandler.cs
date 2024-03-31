@@ -33,7 +33,7 @@ namespace Haley.Models {
                     dt.Load(reader);
                     //todo: put them inside a dataset and return
                     ds.Tables.Add(dt);
-                    logger?.LogInformation($@"Table - {count} created.");
+                    logger?.LogInformation($@"For query {query} - : Table Count - {count} created.");
                     count++;
                 }
                 await reader.CloseAsync();
@@ -46,7 +46,7 @@ namespace Haley.Models {
         private static async Task<object> ExecuteInternal(string targetCon, string query, ILogger logger, Func<NpgsqlCommand, Task<object>> processor, params (string key, object value)[] parameters) {
             using (var conn = NpgsqlDataSource.Create(targetCon)) {
                 //INITIATE CONNECTION
-                logger?.LogInformation($@"opening connection - {targetCon}");
+                logger?.LogInformation($@"Opening connection - {targetCon}");
 
                 ////If schema name is available, try to set search path for this connection.
                 //if (!string.IsNullOrWhiteSpace(schemaname)) {
