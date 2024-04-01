@@ -149,8 +149,8 @@ namespace Haley.Models {
             //Supposed to read the json files and then generate all the adapters.
             try {
                 var root = GetConfigurationRoot(updateOnly);
-                var entries = root.GetSection(DBA_ENTRIES).Get<DbaEntry[]>(); //Fetch all entry information.
-
+                var entries = root.GetSection(DBA_ENTRIES)?.Get<DbaEntry[]>(); //Fetch all entry information.
+                if (entries == null) return this;
                 foreach (var entry in entries) {
 
                     if (string.IsNullOrWhiteSpace(entry.AdapterKey) || string.IsNullOrWhiteSpace(entry.ConnectionKey)) continue;

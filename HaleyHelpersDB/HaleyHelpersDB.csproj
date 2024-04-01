@@ -13,9 +13,14 @@
     <SignAssembly>True</SignAssembly>
     <AssemblyOriginatorKeyFile>..\..\HaleyProject\HaleyProject.snk</AssemblyOriginatorKeyFile>
     <PackageIcon>Haley.png</PackageIcon>
-    <Version>0.0.4</Version>
+    <Version>0.0.5</Version>
     <IncludeSymbols>True</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PackageProjectUrl>https://github.com/TheHaleyProject/HaleyHelpers.DB</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/TheHaleyProject/HaleyHelpers.DB</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <Description>A simple tool to help connect to different Database providers via single window. It has has other cool features</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
   <ItemGroup>
