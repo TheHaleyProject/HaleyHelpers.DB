@@ -11,6 +11,7 @@ using System.Collections.Concurrent;
 using Microsoft.Extensions.Configuration;
 using Haley.Enums;
 using System.Reflection.Metadata.Ecma335;
+using Haley.Models;
 
 namespace Haley.Utils {
     public static class DataSetExtensions {

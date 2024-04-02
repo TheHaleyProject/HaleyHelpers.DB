@@ -1,4 +1,5 @@
-﻿using Haley.Enums;
+﻿using Haley.Abstractions;
+using Haley.Enums;
 using Haley.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -6,17 +7,18 @@ using Org.BouncyCastle.Asn1.Esf;
 using System.Collections.Concurrent;
 using System.Configuration;
 using System.Data;
+using System.Net.Http;
 using System.Security.Cryptography;
 
 namespace Haley.Models {
 
     public delegate void DictionaryUpdatedEvent();
 
-    public class DBAdapterDictionary : ConcurrentDictionary<string, DBAdapter> {
-        public static DBAdapterDictionary Instance => GetInstance();
-        static DBAdapterDictionary _instance;
-        static DBAdapterDictionary GetInstance() {
-            if (_instance == null) { _instance = new DBAdapterDictionary(); }
+    public class DBAService : ConcurrentDictionary<string, DBAdapter>, IDBService {
+        public static DBAService Instance => GetInstance();
+        static DBAService _instance;
+        static DBAService GetInstance() {
+            if (_instance == null) { _instance = new DBAService(); }
             return _instance;
         }
 
@@ -27,7 +29,7 @@ namespace Haley.Models {
 
         private IConfigurationRoot _cfgRoot;
         ConcurrentDictionary<string, (string cstr, TargetDB dbtype)> connectionstrings = new ConcurrentDictionary<string, (string cstr, TargetDB dbtype)>();
-        public DBAdapterDictionary() {
+        public DBAService() {
         }
 
         public event DictionaryUpdatedEvent Updated;
@@ -134,7 +136,7 @@ namespace Haley.Models {
 
         #region Add or Generate Connections
 
-        public DBAdapterDictionary Configure() {
+        public DBAService Configure() {
             return Configure(false);
         }
 
@@ -143,7 +145,7 @@ namespace Haley.Models {
             return this[adapterKey].Entry.Sha == sha;
         }
 
-        DBAdapterDictionary Configure(bool updateOnly = false) {
+        DBAService Configure(bool updateOnly = false) {
             ParseConnectionStrings(updateOnly); //Load all latest connection string information into memory.
             if (connectionstrings == null) throw new ArgumentNullException(nameof(connectionstrings));
             //Supposed to read the json files and then generate all the adapters.
@@ -202,7 +204,7 @@ namespace Haley.Models {
         }
         #endregion Add or Generate Connections
 
-        DBAdapterDictionary Add(DbaEntry entry) {
+        DBAService Add(DbaEntry entry) {
             var adapter = new DBAdapter(entry);
 
             if (ContainsKey(entry.AdapterKey)) {
@@ -230,12 +232,12 @@ namespace Haley.Models {
             return _cfgRoot;
         }
 
-        public DBAdapterDictionary SetConfigurationRoot(string[] jsonPaths, string basePath = null) {
+        public DBAService SetConfigurationRoot(string[] jsonPaths, string basePath = null) {
             SetConfigurationRoot(GenerateConfigurationRoot(jsonPaths, basePath));
             return this;
         }
 
-        public DBAdapterDictionary SetConfigurationRoot(IConfigurationRoot cfgRoot) {
+        public DBAService SetConfigurationRoot(IConfigurationRoot cfgRoot) {
             if (cfgRoot == null) throw new ArgumentNullException(nameof(cfgRoot));
             _cfgRoot = cfgRoot;
             return this;
@@ -245,11 +247,38 @@ namespace Haley.Models {
 
         #region Connection Utils Management
 
-        public DBAdapterDictionary UpdateAdapter() {
+        public DBAService UpdateAdapter() {
             Configure(true);
             Updated?.Invoke();
             return this;
         }
         #endregion Connection Utils Management
+
+        #region Execution
+        public async Task<object> Read(string dba_key, ILogger logger, string query, params (string key, object value)[] parameters) {
+            return await ExecuteInternal(true, dba_key, logger, query, parameters);
+        }
+
+        public async Task<object> NonQuery(string dba_key, ILogger logger, string query, params (string key, object value)[] parameters) {
+            return await ExecuteInternal(false, dba_key, logger, query, parameters);
+        }
+
+        async Task<object> ExecuteInternal(bool isread, string dba_key, ILogger logger, string query, params (string key, object value)[] parameters) {
+            if (string.IsNullOrWhiteSpace(dba_key)) throw new ArgumentException("dba_key cannot be empty");
+            if (!ContainsKey(dba_key)) throw new ArgumentNullException($@"{dba_key} is not found in the dictionary");
+            try {
+                switch (isread) {
+                    case true:
+                    return  (await this[dba_key]?.ExecuteReader(query, null, parameters))?.Select(true)?.Convert()?.ToList();
+                    case false:
+                    default:
+                    return await this[dba_key]?.ExecuteNonQuery(query, null, parameters);
+                }
+            } catch (Exception ex) {
+                logger.LogError(ex.StackTrace);
+                return new DBAError(ex.Message);
+            }
+        }
+        #endregion
     }
 }
