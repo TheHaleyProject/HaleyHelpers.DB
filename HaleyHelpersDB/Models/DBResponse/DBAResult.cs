@@ -5,11 +5,11 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Haley.Models {
-    public class DBAError {
-        public string Error { get; set; }
+    public abstract class DBAResult {
+        protected string _message;
         public override string ToString() {
-            return Error ?? "DBA Error";
+            return _message ?? "DBAResult";
         }
-        public DBAError(string message) { Error = message; }
+        public DBAResult(string message) { _message = message; }
     }
 }
