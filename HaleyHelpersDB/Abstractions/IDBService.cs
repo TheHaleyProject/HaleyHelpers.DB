@@ -18,5 +18,6 @@ namespace Haley.Abstractions {
 
         public Task<object> NonQuery(string dba_key, ILogger logger, string query, ResultFilter filter, params (string key, object value)[] parameters);
         public void SetServiceUtil(IDBServiceUtil util);
+        public Task<object> GetFirst(object input, ResultFilter filter = ResultFilter.None);
     }
 }

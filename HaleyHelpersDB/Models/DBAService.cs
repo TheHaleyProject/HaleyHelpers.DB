@@ -278,6 +278,11 @@ namespace Haley.Models {
             return await ExecuteInternal(false, dba_key, logger, query, filter, parameters);
         }
 
+        public async Task<object> GetFirst(object input, ResultFilter filter = ResultFilter.None) {
+            if (_util != null) return await _util.GetFirst(input, filter); //we know that it is not a dictionary
+            return input;
+        }
+
         async Task<object> ExecuteInternal(bool isread, string dba_key, ILogger logger, string query, ResultFilter filter, params (string key, object value)[] parameters) {
             if (string.IsNullOrWhiteSpace(dba_key)) throw new ArgumentException("dba_key cannot be empty");
             if (!ContainsKey(dba_key)) throw new ArgumentNullException($@"{dba_key} is not found in the dictionary");
@@ -292,13 +297,10 @@ namespace Haley.Models {
                     result = await this[dba_key]?.ExecuteNonQuery(query, null, parameters);
                     break;
                 }
-                if (_util != null) return await _util.GetFirst(result, filter);
-                return result;
+                return await GetFirst(result,filter);
             } catch (Exception ex) {
                 logger.LogError(ex.StackTrace);
-                var err =  new DBAError(ex.Message);
-                if (_util != null) return await _util.GetFirst(err,ResultFilter.None); //we know that it is not a dictionary
-                return err;
+                return await GetFirst(new DBAError(ex.Message));
             }
         }
         #endregion
