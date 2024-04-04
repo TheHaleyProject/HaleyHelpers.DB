@@ -3,6 +3,7 @@ using Haley.Enums;
 using Haley.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using MySqlX.XDevAPI.Common;
 using Org.BouncyCastle.Asn1.Esf;
 using System.Collections.Concurrent;
 using System.Configuration;
@@ -27,7 +28,9 @@ namespace Haley.Models {
         const string DBTYPE_KEY = "dbtype=";
         const string SEARCHPATH_KEY = "searchpath=";
 
-        private IConfigurationRoot _cfgRoot;
+        IConfigurationRoot _cfgRoot;
+        IDBServiceUtil _util;
+
         ConcurrentDictionary<string, (string cstr, TargetDB dbtype)> connectionstrings = new ConcurrentDictionary<string, (string cstr, TargetDB dbtype)>();
         public DBAService() {
         }
@@ -255,28 +258,39 @@ namespace Haley.Models {
         #endregion Connection Utils Management
 
         #region Execution
-        public async Task<object> Read(string dba_key, ILogger logger, string query, params (string key, object value)[] parameters) {
-            return await ExecuteInternal(true, dba_key, logger, query, parameters);
+        public void SetServiceUtil(IDBServiceUtil util) {
+            _util = util;
         }
 
-        public async Task<object> NonQuery(string dba_key, ILogger logger, string query, params (string key, object value)[] parameters) {
-            return await ExecuteInternal(false, dba_key, logger, query, parameters);
+        public async Task<object> Read(string dba_key, ILogger logger, string query, ResultFilter filter = ResultFilter.FirstDictionaryValue, params (string key, object value)[] parameters) {
+            return await ExecuteInternal(true, dba_key, logger, query, filter, parameters);
         }
 
-        async Task<object> ExecuteInternal(bool isread, string dba_key, ILogger logger, string query, params (string key, object value)[] parameters) {
+        public async Task<object> NonQuery(string dba_key, ILogger logger, string query, ResultFilter filter = ResultFilter.FirstDictionaryValue, params (string key, object value)[] parameters) {
+            return await ExecuteInternal(false, dba_key, logger, query, filter, parameters);
+        }
+
+        async Task<object> ExecuteInternal(bool isread, string dba_key, ILogger logger, string query, ResultFilter filter, params (string key, object value)[] parameters) {
             if (string.IsNullOrWhiteSpace(dba_key)) throw new ArgumentException("dba_key cannot be empty");
             if (!ContainsKey(dba_key)) throw new ArgumentNullException($@"{dba_key} is not found in the dictionary");
             try {
+                object result = null;
                 switch (isread) {
                     case true:
-                    return  (await this[dba_key]?.ExecuteReader(query, null, parameters))?.Select(true)?.Convert()?.ToList();
+                    result= (await this[dba_key]?.ExecuteReader(query, null, parameters))?.Select(true)?.Convert()?.ToList();
+                    break;
                     case false:
                     default:
-                    return await this[dba_key]?.ExecuteNonQuery(query, null, parameters);
+                    result = await this[dba_key]?.ExecuteNonQuery(query, null, parameters);
+                    break;
                 }
+                if (_util != null) return await _util.GetFirst(result, filter);
+                return result;
             } catch (Exception ex) {
                 logger.LogError(ex.StackTrace);
-                return new DBAError(ex.Message);
+                var err =  new DBAError(ex.Message);
+                if (_util != null) return await _util.GetFirst(err,ResultFilter.None); //we know that it is not a dictionary
+                return err;
             }
         }
         #endregion
