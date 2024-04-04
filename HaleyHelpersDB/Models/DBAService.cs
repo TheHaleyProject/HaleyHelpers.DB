@@ -262,11 +262,19 @@ namespace Haley.Models {
             _util = util;
         }
 
-        public async Task<object> Read(string dba_key, ILogger logger, string query, ResultFilter filter = ResultFilter.FirstDictionaryValue, params (string key, object value)[] parameters) {
+        public async Task<object> Read(string dba_key, ILogger logger, string query,  params (string key, object value)[] parameters) {
+            return await ExecuteInternal(true, dba_key, logger, query, ResultFilter.None, parameters);
+        }
+
+        public async Task<object> NonQuery(string dba_key, ILogger logger, string query, params (string key, object value)[] parameters) {
+            return await ExecuteInternal(false, dba_key, logger, query, ResultFilter.None, parameters);
+        }
+
+        public async Task<object> Read(string dba_key, ILogger logger, string query, ResultFilter filter , params (string key, object value)[] parameters) {
             return await ExecuteInternal(true, dba_key, logger, query, filter, parameters);
         }
 
-        public async Task<object> NonQuery(string dba_key, ILogger logger, string query, ResultFilter filter = ResultFilter.FirstDictionaryValue, params (string key, object value)[] parameters) {
+        public async Task<object> NonQuery(string dba_key, ILogger logger, string query, ResultFilter filter , params (string key, object value)[] parameters) {
             return await ExecuteInternal(false, dba_key, logger, query, filter, parameters);
         }
 
