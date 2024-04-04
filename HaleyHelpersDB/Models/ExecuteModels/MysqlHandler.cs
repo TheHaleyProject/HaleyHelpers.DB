@@ -9,6 +9,8 @@ namespace Haley.Models {
         public static async Task<int> ExecuteNonQuery(string targetConn, string query, ILogger logger, params (string key, object value)[] parameters) {
             var result = await ExecuteInternal(targetConn, query, logger, async (cmd) => {
                 int status = 0;
+                //exceute non-query will return -1 for all calls other than insert/update/delete, as the return value is the number of rows affected.
+                //if we are using stored procedures, it will always return -1.
                 status = await cmd.ExecuteNonQueryAsync();
                 return status;
             }, parameters);

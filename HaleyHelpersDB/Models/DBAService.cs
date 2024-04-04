@@ -274,12 +274,10 @@ namespace Haley.Models {
             return await ExecuteInternal(true, dba_key, logger, query, filter, parameters);
         }
 
-        public async Task<object> NonQuery(string dba_key, ILogger logger, string query, ResultFilter filter , params (string key, object value)[] parameters) {
-            return await ExecuteInternal(false, dba_key, logger, query, filter, parameters);
-        }
-
         public async Task<object> GetFirst(object input, ResultFilter filter = ResultFilter.None) {
-            if (_util != null) return await _util.GetFirst(input, filter); //we know that it is not a dictionary
+            //Now, apply internal methods to get the result
+            input = input.ApplyFilter(filter);
+            if (_util != null) return _util.Convert(input); //we know that it is not a dictionary
             return input;
         }
 
@@ -299,7 +297,7 @@ namespace Haley.Models {
                 }
                 return await GetFirst(result,filter);
             } catch (Exception ex) {
-                logger.LogError(ex.StackTrace);
+                logger?.LogError(ex.StackTrace);
                 return await GetFirst(new DBAError(ex.Message));
             }
         }
