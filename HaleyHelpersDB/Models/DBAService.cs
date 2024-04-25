@@ -88,14 +88,14 @@ namespace Haley.Models {
             return conStr;
         }
 
-        public static string GetDBName(string connectionstring) {
-            if (string.IsNullOrWhiteSpace(connectionstring)) return string.Empty;
+        public static string ParseConnectionString(string connectionstring,string field_name) {
+            if (string.IsNullOrWhiteSpace(connectionstring) || string.IsNullOrWhiteSpace(field_name)) return string.Empty;
             //If user specifies a database, then remove the old value (if exists) and add the new database value
             string conStr = connectionstring;
-            if (conStr.Contains(DBNAME_KEY, StringComparison.OrdinalIgnoreCase)) {
+            if (conStr.Contains(field_name, StringComparison.OrdinalIgnoreCase)) {
                 //remove that part.
                 var allparts = conStr.Split(";");
-                var kvp=  allparts.FirstOrDefault(q => q.Trim().StartsWith(DBNAME_KEY,StringComparison.OrdinalIgnoreCase));
+                var kvp=  allparts.FirstOrDefault(q => q.Trim().StartsWith(field_name, StringComparison.OrdinalIgnoreCase));
                 if (kvp != null) {
                    return kvp.Split("=")[1];
                 }
@@ -169,7 +169,7 @@ namespace Haley.Models {
                             constr = ReplaceParameter(constr, DBNAME_KEY, entry.DBName);
                         } else {
                             //Let us try to fetch the dbname from the input.
-                            entry.DBName = GetDBName(constr);
+                            entry.DBName = ParseConnectionString(constr,DBNAME_KEY);
                         }
                         entry.ConnectionString = constr;
 
