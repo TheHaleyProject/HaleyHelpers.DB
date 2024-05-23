@@ -7,6 +7,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using Haley.Enums;
+using Microsoft.Extensions.Configuration;
 
 namespace Haley.Abstractions {
     public interface IDBService: IDictionary<string, DBAdapter> {
@@ -16,5 +17,6 @@ namespace Haley.Abstractions {
         public Task<object> NonQuery(string dba_key, ILogger logger, string query, params (string key, object value)[] parameters);
         public void SetServiceUtil(IDBServiceUtil util);
         public Task<object> GetFirst(object input, ResultFilter filter = ResultFilter.None);
+        public IConfigurationRoot GetConfigurationRoot(bool reload = false);
     }
 }
