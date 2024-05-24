@@ -139,7 +139,7 @@ namespace Haley.Models {
 
         #region Add or Generate Connections
 
-        public DBAService Configure() {
+        public IDBService Configure() {
             return Configure(false);
         }
 
@@ -148,7 +148,7 @@ namespace Haley.Models {
             return this[adapterKey].Entry.Sha == sha;
         }
 
-        DBAService Configure(bool updateOnly = false) {
+        IDBService Configure(bool updateOnly) {
             ParseConnectionStrings(updateOnly); //Load all latest connection string information into memory.
             if (connectionstrings == null) throw new ArgumentNullException(nameof(connectionstrings));
             //Supposed to read the json files and then generate all the adapters.
@@ -207,7 +207,7 @@ namespace Haley.Models {
         }
         #endregion Add or Generate Connections
 
-        DBAService Add(DbaEntry entry) {
+        IDBService Add(DbaEntry entry) {
             var adapter = new DBAdapter(entry);
 
             if (ContainsKey(entry.AdapterKey)) {
@@ -235,12 +235,12 @@ namespace Haley.Models {
             return _cfgRoot;
         }
 
-        public DBAService SetConfigurationRoot(string[] jsonPaths, string basePath = null) {
+        public IDBService SetConfigurationRoot(string[] jsonPaths, string basePath = null) {
             SetConfigurationRoot(GenerateConfigurationRoot(jsonPaths, basePath));
             return this;
         }
 
-        public DBAService SetConfigurationRoot(IConfigurationRoot cfgRoot) {
+        public IDBService SetConfigurationRoot(IConfigurationRoot cfgRoot) {
             if (cfgRoot == null) throw new ArgumentNullException(nameof(cfgRoot));
             _cfgRoot = cfgRoot;
             return this;
@@ -250,7 +250,7 @@ namespace Haley.Models {
 
         #region Connection Utils Management
 
-        public DBAService UpdateAdapter() {
+        public IDBService UpdateAdapter() {
             Configure(true);
             Updated?.Invoke();
             return this;
@@ -262,16 +262,14 @@ namespace Haley.Models {
             _util = util;
         }
 
-        public async Task<object> Read(string dba_key, ILogger logger, string query,  params (string key, object value)[] parameters) {
-            return await ExecuteInternal(true, dba_key, logger, query, ResultFilter.None, parameters);
+        public async Task<object> Read(DBInput input,  params (string key, object value)[] parameters) {
+            input.ReturnsResult = true;
+            return await ExecuteInternal(input, parameters);
         }
 
-        public async Task<object> NonQuery(string dba_key, ILogger logger, string query, params (string key, object value)[] parameters) {
-            return await ExecuteInternal(false, dba_key, logger, query, ResultFilter.None, parameters);
-        }
-
-        public async Task<object> Read(string dba_key, ILogger logger, string query, ResultFilter filter , params (string key, object value)[] parameters) {
-            return await ExecuteInternal(true, dba_key, logger, query, filter, parameters);
+        public async Task<object> NonQuery(DBInput input, params (string key, object value)[] parameters) {
+            input.ReturnsResult = false;
+            return await ExecuteInternal(input, parameters);
         }
 
         public async Task<object> GetFirst(object input, ResultFilter filter = ResultFilter.None) {
@@ -281,23 +279,31 @@ namespace Haley.Models {
             return input;
         }
 
-        async Task<object> ExecuteInternal(bool isread, string dba_key, ILogger logger, string query, ResultFilter filter, params (string key, object value)[] parameters) {
-            if (string.IsNullOrWhiteSpace(dba_key)) throw new ArgumentException("dba_key cannot be empty");
-            if (!ContainsKey(dba_key)) throw new ArgumentNullException($@"{dba_key} is not found in the dictionary");
+        //(string key, object value, ParameterDirection direction)[] ParamAdapter(params (string key, object value)[] parameters) {
+        //    List<(string key, object value, ParameterDirection direction)> result = new List<(string key, object value, ParameterDirection direction)>();
+        //    foreach (var item in parameters) {
+        //        result.Add((item.key, item.value, ParameterDirection.Input));
+        //    }
+        //    return result.ToArray();
+        //}
+
+        async Task<object> ExecuteInternal(DBInput input, params (string key, object value)[] parameters) {
+            if (string.IsNullOrWhiteSpace(input.DBAKey)) throw new ArgumentException("input.DBAKey cannot be empty");
+            if (!ContainsKey(input.DBAKey)) throw new ArgumentNullException($@"{input.DBAKey} is not found in the dictionary");
             try {
                 object result = null;
-                switch (isread) {
+                switch (input.ReturnsResult) {
                     case true:
-                    result= (await this[dba_key]?.ExecuteReader(query, null, parameters))?.Select(true)?.Convert()?.ToList();
+                    result= (await this[input.DBAKey]?.ExecuteReader(input, parameters))?.Select(true)?.Convert()?.ToList();
                     break;
                     case false:
                     default:
-                    result = await this[dba_key]?.ExecuteNonQuery(query, null, parameters);
+                    result = await this[input.DBAKey]?.ExecuteNonQuery(input, parameters);
                     break;
                 }
-                return await GetFirst(result,filter);
+                return await GetFirst(result,input.Filter);
             } catch (Exception ex) {
-                logger?.LogError(ex.StackTrace);
+                input.Logger?.LogError(ex.StackTrace);
                 return await GetFirst(new DBAError(ex.Message));
             }
         }

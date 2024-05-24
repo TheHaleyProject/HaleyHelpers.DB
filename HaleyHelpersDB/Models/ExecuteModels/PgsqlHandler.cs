@@ -7,21 +7,29 @@ namespace Haley.Models {
 
     public static class PgsqlHandler {
 
-        public static async Task<int> ExecuteNonQuery(string targetConn, string query, ILogger logger, params (string key, object value)[] parameters) {
-            var result = await ExecuteInternal(targetConn, query, logger, async (cmd) => {
+        public static async Task<object> ExecuteNonQuery(DBInput input, params (string key, object value)[] parameters) {
+            var result = await ExecuteInternal(input, async (cmd) => {
                 int status = 0;
-                //exceute non-query will return -1 for all calls other than insert/update/delete, as the return value is the number of rows affected.
-                //if we are using stored procedures, it will always return -1.
+                
+                //If command has output parameter, no need to fetch.
+                if (cmd.Parameters.Count > 0 && cmd.Parameters.Any(p => p.ParameterName == input.OutputName)) {
+                    var reader = await cmd.ExecuteReaderAsync();
+                    return cmd.Parameters.First(p => p.ParameterName == input.OutputName).Value; //return whatever we receive.
+                } 
+
                 status = await cmd.ExecuteNonQueryAsync();
                 return status;
             }, parameters);
+
+
             if (result?.GetType() == typeof(int)) { return int.Parse(result.ToString()! ?? "0"); }
-            return 0;
+            return result ?? 0;
         }
 
-        public static async Task<DataSet> ExecuteReader(string targetConn, string query, ILogger logger, params (string key, object value)[] parameters) {
-            var result = await ExecuteInternal(targetConn, query, logger, async (cmd) => {
+        public static async Task<DataSet> ExecuteReader(DBInput input, params (string key, object value)[] parameters) {
+            var result = await ExecuteInternal(input, async (cmd) => {
                 var reader = await cmd.ExecuteReaderAsync();
+
                 DataSet ds = new DataSet();
                 int count = 1;
 
@@ -35,7 +43,7 @@ namespace Haley.Models {
                     dt.Load(reader);
                     //todo: put them inside a dataset and return
                     ds.Tables.Add(dt);
-                    logger?.LogInformation($@"For query {query} - : Table Count - {count} created.");
+                    input.Logger?.LogInformation($@"For query {input.Query} - : Table Count - {count} created.");
                     count++;
                 }
                 await reader.CloseAsync();
@@ -45,36 +53,45 @@ namespace Haley.Models {
             return result as DataSet;
         }
 
-        private static async Task<object> ExecuteInternal(string targetCon, string query, ILogger logger, Func<NpgsqlCommand, Task<object>> processor, params (string key, object value)[] parameters) {
-            using (var conn = NpgsqlDataSource.Create(targetCon)) {
+        private static async Task<object> ExecuteInternal(DBInput input, Func<NpgsqlCommand, Task<object>> processor, params (string key, object value)[] parameters) {
+            using (var conn = NpgsqlDataSource.Create(input.Conn)) {
                 //INITIATE CONNECTION
-                logger?.LogInformation($@"Opening connection - {targetCon}");
+                input.Logger?.LogInformation($@"Opening connection - {input.Conn}");
 
                 ////If schema name is available, try to set search path for this connection.
                 //if (!string.IsNullOrWhiteSpace(schemaname)) {
-                //    logger?.LogInformation($@"Schema name found - {schemaname}");
-                //    var searchPathCmd = MakeCommand(conn, $@"set search_path to {schemaname}",logger);
+                //    input.Logger?.LogInformation($@"Schema name found - {schemaname}");
+                //    var searchPathCmd = MakeCommand(conn, $@"set search_path to {schemaname}",input.Logger);
                 //    var status = await searchPathCmd.ExecuteNonQueryAsync(); //Let us first set the search path for this.
                 //}
 
-                var cmd = MakeCommand(conn, query, logger, parameters);
-                logger?.LogInformation("About to execute");
+                var cmd = MakeCommand(conn, input, parameters);
+                input.Logger?.LogInformation("About to execute");
 
                 var result = await processor.Invoke(cmd);
-                logger?.LogInformation("Connection closed");
+                input.Logger?.LogInformation("Connection closed");
                 return result;
             }
         }
 
-        private static NpgsqlCommand MakeCommand(NpgsqlDataSource conn,  string query, ILogger logger, params (string key, object value)[] parameters) {
+        private static NpgsqlCommand MakeCommand(NpgsqlDataSource conn,  DBInput input, params (string key, object value)[] parameters) {
             //await dsource.OpenConnectionAsync();
-            var cmd = conn.CreateCommand(query);
+            var cmd = conn.CreateCommand(input.Query);
             //ADD PARAMETERS IF REQUIRED
             if (parameters.Length > 0) {
                 // NpgsqlParameter[] msp = new NpgsqlParameter[parameters.Length];
                 for (int i = 0; i < parameters.Length; i++) {
                     var key = parameters[i].key;
-                    var msp = new NpgsqlParameter(key, parameters[i].value);
+                    NpgsqlParameter msp = new NpgsqlParameter();
+                    msp.ParameterName = key;
+
+                    bool flag = true; //start with true
+                    if (input.ParamHandler != null) {
+                        flag = input.ParamHandler.Invoke(key,msp);
+                    }
+                    if (flag) {
+                        msp.Value = parameters[i].value;
+                    }
                     if (!key.StartsWith("@")) { key = "@" + key; }
                     cmd.Parameters.Add(msp);
                 }

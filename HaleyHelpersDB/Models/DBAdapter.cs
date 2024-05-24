@@ -15,28 +15,30 @@ namespace Haley.Models
         public DbaEntry Entry { get; }  //Read only.
         #region Public Methods
 
-        public async Task<DataSet> ExecuteReader(string query, ILogger logger, params (string key, object value)[] parameters) {
+        public async Task<DataSet> ExecuteReader(DBInput input, params (string key, object value)[] parameters) {
+            input.Conn = Entry.ConnectionString;
             switch (Entry.DBType) {
                 case TargetDB.mssql: //Microsoft SQL
-                return await MssqlHandler.ExecuteReader(Entry.ConnectionString, query, logger, parameters);
+                return await MssqlHandler.ExecuteReader(input, parameters);
                 case TargetDB.pgsql: //Postgres
-                return await PgsqlHandler.ExecuteReader(Entry.ConnectionString,query, logger, parameters);
+                return await PgsqlHandler.ExecuteReader(input, parameters);
                 case TargetDB.maria: //Mariadb
-                return await MysqlHandler.ExecuteReader(Entry.ConnectionString, query, logger, parameters);
+                return await MysqlHandler.ExecuteReader(input, parameters);
             }
-            return await MysqlHandler.ExecuteReader(Entry.ConnectionString, query, logger, parameters);
+            return await MysqlHandler.ExecuteReader(input, parameters);
         }
 
-        public async Task<int> ExecuteNonQuery(string query, ILogger logger, params (string key, object value)[] parameters) {
+        public async Task<object> ExecuteNonQuery(DBInput input, params (string key, object value)[] parameters) {
+            input.Conn = Entry.ConnectionString;
             switch (Entry.DBType) {
                 case TargetDB.mssql: //Microsoft SQL
-                return await MssqlHandler.ExecuteNonQuery(Entry.ConnectionString, query, logger, parameters);
+                return await MssqlHandler.ExecuteNonQuery(input, parameters);
                 case TargetDB.pgsql: //Postgres
-                return await PgsqlHandler.ExecuteNonQuery(Entry.ConnectionString, query, logger, parameters);
+                return await PgsqlHandler.ExecuteNonQuery(input, parameters);
                 case TargetDB.maria: //Mariadb
-                return await MysqlHandler.ExecuteNonQuery(Entry.ConnectionString, query, logger, parameters);
+                return await MysqlHandler.ExecuteNonQuery(input, parameters);
             }
-            return await MysqlHandler.ExecuteNonQuery(Entry.ConnectionString, query, logger, parameters);
+            return await MysqlHandler.ExecuteNonQuery(input, parameters);
         }
 
         public void UpdateDBEntry(DbaEntry newentry) {

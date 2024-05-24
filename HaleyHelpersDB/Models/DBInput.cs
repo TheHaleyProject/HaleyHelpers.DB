@@ -1,0 +1,23 @@
+﻿using Haley.Enums;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Haley.Models {
+    public class DBInput {
+        public string DBAKey { get; set; }
+        public ResultFilter Filter { get; set; }
+        public string Conn { get; set; }
+        public string Query { get; set; }
+        public ILogger  Logger { get; set; }
+        internal bool ReturnsResult { get; set; }
+        public Func<string, object, bool> ParamHandler { get; set; }
+        public string OutputName { get; set; }
+        public DBInput(string dba_key) {
+            DBAKey = dba_key;
+            Filter = ResultFilter.None; }
+    }
+}
