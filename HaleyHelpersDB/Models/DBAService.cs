@@ -9,6 +9,7 @@ using System.Collections.Concurrent;
 using System.Configuration;
 using System.Data;
 using System.Net.Http;
+using System.Runtime.Intrinsics.Arm;
 using System.Security.Cryptography;
 
 namespace Haley.Models {
@@ -146,6 +147,11 @@ namespace Haley.Models {
         public bool IsShaValid(string adapterKey,string sha) {
             if (string.IsNullOrWhiteSpace(adapterKey) || string.IsNullOrWhiteSpace(sha) || !this.ContainsKey(adapterKey)) return false;
             return this[adapterKey].Entry.Sha == sha;
+        }
+
+        public string GetSchemaName(string dba_key) {
+            if (!this.ContainsKey(dba_key)) return null;
+            return this[dba_key].Entry.SchemaName;
         }
 
         IDBService Configure(bool updateOnly) {

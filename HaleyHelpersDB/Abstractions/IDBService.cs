@@ -20,5 +20,6 @@ namespace Haley.Abstractions {
         public IConfigurationRoot GetConfigurationRoot(bool reload = false);
         public IDBService UpdateAdapter();
         public IDBService Configure();
+        public string GetSchemaName(string dba_key);
     }
 }
