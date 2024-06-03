@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
-using MySql.Data.MySqlClient;
+//using MySql.Data.MySqlClient;
+using MySqlConnector;
 using System.Data;
 
 namespace Haley.Models {
@@ -49,6 +50,7 @@ namespace Haley.Models {
                 input.Logger?.LogInformation($@"Opening connection - {input.Conn}");
                 //conn.Open();
                 await conn.OpenAsync();
+
                 var cmd = conn.CreateCommand();
                 cmd.CommandText = input.Query;
                 input.Logger?.LogInformation("Creating query");
@@ -60,6 +62,7 @@ namespace Haley.Models {
                         var key = parameters[i].key;
                         if (!key.StartsWith("@")) { key = "@" + key; } //Check why this is required.
 
+                        msp[i] = new MySqlParameter();
                         msp[i].ParameterName = key;
 
                         bool flag = true; //start with true

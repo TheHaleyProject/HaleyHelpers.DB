@@ -1,6 +1,5 @@
 ﻿using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
-using MySql.Data.MySqlClient;
 using System.Data;
 
 namespace Haley.Models {
@@ -63,6 +62,7 @@ namespace Haley.Models {
                         var key = parameters[i].key;
                         if (!key.StartsWith("@")) { key = "@" + key; } //Check why this is required.
                         //msp[i] = new SqlParameter(key, parameters[i].value) { };
+                        msp[i] = new SqlParameter();
                         msp[i].ParameterName = key;
                         bool flag = true; //start with true
                         if (input.ParamHandler != null) {

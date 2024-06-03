@@ -3,8 +3,6 @@ using Haley.Enums;
 using Haley.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using MySqlX.XDevAPI.Common;
-using Org.BouncyCastle.Asn1.Esf;
 using System.Collections.Concurrent;
 using System.Configuration;
 using System.Data;

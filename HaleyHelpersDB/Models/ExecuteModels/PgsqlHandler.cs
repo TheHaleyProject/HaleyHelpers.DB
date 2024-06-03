@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Logging;
-using MySql.Data.MySqlClient;
 using Npgsql;
 using System.Data;
 
