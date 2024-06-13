@@ -9,6 +9,7 @@ namespace Haley.Models {
 
         public static async Task<object> ExecuteNonQuery(DBInput input, params (string key, object value)[] parameters) {
             var result = await ExecuteInternal(input, async (cmd) => {
+
                 int status = 0;
                 //If command has output parameter, no need to fetch.
                 // ################### TODO (Add provision for handling return methods) #############################

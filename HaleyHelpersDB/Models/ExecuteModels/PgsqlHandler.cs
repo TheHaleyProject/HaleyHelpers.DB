@@ -9,7 +9,10 @@ namespace Haley.Models {
         public static async Task<object> ExecuteNonQuery(DBInput input, params (string key, object value)[] parameters) {
             var result = await ExecuteInternal(input, async (cmd) => {
                 int status = 0;
-                
+                if (input.Prepare) {
+                    await cmd.PrepareAsync();
+                }
+
                 //If command has output parameter, no need to fetch.
                 if (cmd.Parameters.Count > 0 && cmd.Parameters.Any(p => p.ParameterName == input.OutputName)) {
                     var reader = await cmd.ExecuteReaderAsync();
@@ -27,6 +30,11 @@ namespace Haley.Models {
 
         public static async Task<DataSet> ExecuteReader(DBInput input, params (string key, object value)[] parameters) {
             var result = await ExecuteInternal(input, async (cmd) => {
+
+                if (input.Prepare) {
+                    await cmd.PrepareAsync();
+                }
+
                 var reader = await cmd.ExecuteReaderAsync();
 
                 DataSet ds = new DataSet();

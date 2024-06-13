@@ -16,6 +16,7 @@ namespace Haley.Models {
         internal bool ReturnsResult { get; set; }
         public Func<string, object, bool> ParamHandler { get; set; }
         public string OutputName { get; set; }
+        public bool Prepare { get; set; } = false;
         public DBInput(string dba_key) {
             DBAKey = dba_key;
             Filter = ResultFilter.None; }
