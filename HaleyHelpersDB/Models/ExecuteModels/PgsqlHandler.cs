@@ -1,31 +1,37 @@
 ﻿using Microsoft.Extensions.Logging;
 using Npgsql;
 using System.Data;
+using System.Text.RegularExpressions;
+using Haley.Utils;
 
 namespace Haley.Models {
 
     public static class PgsqlHandler {
 
         public static async Task<object> ExecuteNonQuery(DBInput input, params (string key, object value)[] parameters) {
-            var result = await ExecuteInternal(input, async (cmd) => {
-                int status = 0;
-                if (input.Prepare) {
-                    await cmd.PrepareAsync();
-                }
+            try {
+                var result = await ExecuteInternal(input, async (cmd) => {
+                    int status = 0;
+                    if (input.Prepare) {
+                        await cmd.PrepareAsync();
+                    }
 
-                //If command has output parameter, no need to fetch.
-                if (cmd.Parameters.Count > 0 && cmd.Parameters.Any(p => p.ParameterName == input.OutputName)) {
-                    var reader = await cmd.ExecuteReaderAsync();
-                    return cmd.Parameters.First(p => p.ParameterName == input.OutputName).Value; //return whatever we receive.
-                } 
+                    //If command has output parameter, no need to fetch.
+                    if (cmd.Parameters.Count > 0 && cmd.Parameters.Any(p => p.ParameterName == input.OutputName)) {
+                        var reader = await cmd.ExecuteReaderAsync();
+                        return cmd.Parameters.First(p => p.ParameterName == input.OutputName).Value; //return whatever we receive.
+                    }
 
-                status = await cmd.ExecuteNonQueryAsync();
-                return status;
-            }, parameters);
+                    status = await cmd.ExecuteNonQueryAsync();
+                    return status;
+                }, parameters);
 
 
-            if (result?.GetType() == typeof(int)) { return int.Parse(result.ToString()! ?? "0"); }
-            return result ?? 0;
+                if (result?.GetType() == typeof(int)) { return int.Parse(result.ToString()! ?? "0"); }
+                return result ?? 0;
+            } catch (Exception ex) {
+                throw;
+            }
         }
 
         public static async Task<DataSet> ExecuteReader(DBInput input, params (string key, object value)[] parameters) {
@@ -97,7 +103,17 @@ namespace Haley.Models {
                         flag = input.ParamHandler.Invoke(key,msp);
                     }
                     if (flag) {
-                        msp.Value = parameters[i].value;
+                        var pvalue = parameters[i].value;
+                        //if (pvalue != null &&  pvalue.GetType() == typeof(string)) {
+                        //    var pvalueStr = pvalue.ToString()!;
+                        //    //Uri.UnescapeDataString
+                        //    pvalue = Regex.Unescape(pvalue!.ToString()).Replace("'", "''")
+                        //    //pvalue = Uri.UnescapeDataString(pvalue!.ToString())
+                        //    //pvalue = pvalue.ToString()
+                        //    //   .Replace("'","''")
+                        //    //   .Replace("\\u0027", "\\u0027\\u0027"); //If it is a string, replace the single quote.
+                        //}
+                        msp.Value = pvalue;
                     }
                     if (!key.StartsWith("@")) { key = "@" + key; }
                     cmd.Parameters.Add(msp);
