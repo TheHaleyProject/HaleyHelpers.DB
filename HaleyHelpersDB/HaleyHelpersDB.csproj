@@ -13,7 +13,7 @@
     <SignAssembly>True</SignAssembly>
     <AssemblyOriginatorKeyFile>..\..\HaleyProject\HaleyProject.snk</AssemblyOriginatorKeyFile>
     <PackageIcon>Haley.png</PackageIcon>
-    <Version>0.0.12.1</Version>
+    <Version>0.0.13</Version>
     <IncludeSymbols>True</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <PackageProjectUrl>https://github.com/TheHaleyProject/HaleyHelpers.DB</PackageProjectUrl>
@@ -22,6 +22,12 @@
     <Description>A simple tool to help connect to different Database providers via single window. It has has other cool features</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Models\Storage\**" />
+    <EmbeddedResource Remove="Models\Storage\**" />
+    <None Remove="Models\Storage\**" />
+  </ItemGroup>
 
   <ItemGroup>
     <None Include="..\..\HaleyProject\Haley.png">
@@ -38,10 +44,6 @@
     <PackageReference Include="Npgsql" Version="8.0.3" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Models\Storage\" />
-  </ItemGroup>
-
   <Import Project="$(SolutionDir)ProjectReferences_$(SolutionName).txt" Condition="Exists('$(SolutionDir)ProjectReferences_$(SolutionName).txt')" />
   <Choose>
     <When Condition="Exists($(HaleyHelpers))">
@@ -53,7 +55,7 @@
     </When>
     <Otherwise>
       <ItemGroup>
-        <PackageReference Include="Haley.Helpers" Version="2.2.3.1" />
+        <PackageReference Include="Haley.Helpers" Version="2.2.4" />
       </ItemGroup>
     </Otherwise>
   </Choose>
