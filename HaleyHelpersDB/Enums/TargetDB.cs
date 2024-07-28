@@ -16,6 +16,8 @@ namespace Haley.Enums {
         [Description("Microsoft SQL")]
         mssql,
         [Description("PostgreSQL")]
-        pgsql
+        pgsql,
+        [Description("SQLite")]
+        sqlite
     }
 }
