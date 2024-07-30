@@ -152,12 +152,12 @@ namespace Haley.Models {
             return this[dba_key].Entry.SchemaName;
         }
 
-        IDBService Configure(bool updateOnly) {
-            ParseConnectionStrings(updateOnly); //Load all latest connection string information into memory.
+        IDBService Configure(bool reload) {
+            ParseConnectionStrings(reload); //Load all latest connection string information into memory.
             if (connectionstrings == null) throw new ArgumentNullException(nameof(connectionstrings));
             //Supposed to read the json files and then generate all the adapters.
             try {
-                var root = GetConfigurationRoot(updateOnly);
+                var root = GetConfigurationRoot(reload);
                 var entries = root.GetSection(DBA_ENTRIES)?.Get<DbaEntry[]>(); //Fetch all entry information.
                 if (entries == null) return this;
                 foreach (var entry in entries) {
@@ -187,7 +187,7 @@ namespace Haley.Models {
                             throw new ArgumentException($@"Missing: Value for DBTYPE which is needed to decide the type of database to connect to. Entry {entry.ConnectionKey} - {entry.AdapterKey}");
                         }
 
-                        if (this.ContainsKey(entry.AdapterKey) && updateOnly) {
+                        if (this.ContainsKey(entry.AdapterKey) && reload) {
                             //Now this will be an update.
                             this[entry.AdapterKey].UpdateDBEntry(entry);
                         } else {
@@ -229,8 +229,8 @@ namespace Haley.Models {
 
         #region Configuration Root Management
 
-        public IConfigurationRoot GetConfigurationRoot(bool reload = false) {
-            if (_cfgRoot == null) {
+        public IConfigurationRoot GetConfigurationRoot(bool reload = false, bool force_reload = false) {
+            if (_cfgRoot == null || force_reload) {
                 //Set default configuration root.
                 SetConfigurationRoot(null, null);
             } else {
