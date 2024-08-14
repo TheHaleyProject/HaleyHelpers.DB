@@ -307,6 +307,8 @@ namespace Haley.Models {
                 }
                 return await GetFirst(result,input.Filter);
             } catch (Exception ex) {
+                input.Logger?.LogError($@"Error for: {input.Query}");
+                input.Logger?.LogError(ex.Message);
                 input.Logger?.LogError(ex.StackTrace);
                 return await GetFirst(new DBAError(ex.Message));
             }

@@ -30,7 +30,11 @@ namespace Haley.Models {
                 if (result?.GetType() == typeof(int)) { return int.Parse(result.ToString()! ?? "0"); }
                 return result ?? 0;
             } catch (Exception ex) {
-                throw;
+                var msg = $@"Error: {ex.Message}";
+                if (ex is PostgresException npEx) {
+                    msg += $@", Query: {npEx.InternalQuery}";
+                }
+                throw new Exception(msg);
             }
         }
 
