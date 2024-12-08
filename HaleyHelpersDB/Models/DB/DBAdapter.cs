@@ -23,9 +23,12 @@ namespace Haley.Models
                 case TargetDB.pgsql: //Postgres
                 return await PgsqlHandler.ExecuteReader(input, parameters);
                 case TargetDB.maria: //Mariadb
+                case TargetDB.mysql:
                 return await MysqlHandler.ExecuteReader(input, parameters);
+                case TargetDB.sqlite:
+                return await SqliteHandler.ExecuteReader(input, parameters);
             }
-            return await MysqlHandler.ExecuteReader(input, parameters);
+            throw new NotImplementedException("No handler found for the given DB Type");
         }
 
         public async Task<object> ExecuteNonQuery(DBInput input, params (string key, object value)[] parameters) {
@@ -36,9 +39,12 @@ namespace Haley.Models
                 case TargetDB.pgsql: //Postgres
                 return await PgsqlHandler.ExecuteNonQuery(input, parameters);
                 case TargetDB.maria: //Mariadb
+                case TargetDB.mysql:
                 return await MysqlHandler.ExecuteNonQuery(input, parameters);
+                case TargetDB.sqlite: //Mariadb
+                return await SqliteHandler.ExecuteNonQuery(input, parameters);
             }
-            return await MysqlHandler.ExecuteNonQuery(input, parameters);
+            throw new NotImplementedException("No handler found for the given DB Type");
         }
 
         public void UpdateDBEntry(DbaEntry newentry) {

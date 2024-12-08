@@ -18,6 +18,7 @@ namespace Haley.Abstractions {
         public void SetServiceUtil(IDBServiceUtil util);
         public Task<object> GetFirst(object input, ResultFilter filter = ResultFilter.None);
         public IConfigurationRoot GetConfigurationRoot(bool reload = false, bool force_reload = false);
+        public IDBService Add(DbaEntry entry, bool replace = true);
         public IDBService UpdateAdapter();
         public IDBService Configure();
         public string GetSchemaName(string dba_key);

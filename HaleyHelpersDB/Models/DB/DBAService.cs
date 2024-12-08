@@ -211,10 +211,12 @@ namespace Haley.Models {
         }
         #endregion Add or Generate Connections
 
-        IDBService Add(DbaEntry entry) {
+        public IDBService Add(DbaEntry entry, bool replace = true) {
             var adapter = new DBAdapter(entry);
 
-            if (ContainsKey(entry.AdapterKey)) {
+            if (!replace && ContainsKey(entry.AdapterKey)) return this;
+
+            if (replace && ContainsKey(entry.AdapterKey)) {
                 //remove the adapter
                 if (!TryRemove(entry.AdapterKey, out _)) {
                     throw new ArgumentException($@"Key {entry.AdapterKey} already exists and unable to replace it as well.");
@@ -293,7 +295,7 @@ namespace Haley.Models {
 
         async Task<object> ExecuteInternal(DBInput input, params (string key, object value)[] parameters) {
             if (string.IsNullOrWhiteSpace(input.DBAKey)) throw new ArgumentException("input.DBAKey cannot be empty");
-            if (!ContainsKey(input.DBAKey)) throw new ArgumentNullException($@"{input.DBAKey} is not found in the dictionary");
+            if (!ContainsKey(input.DBAKey)) throw new ArgumentNullException($@"DBAKey missing: {input.DBAKey} is not found in the dictionary");
             try {
                 object result = null;
                 switch (input.ReturnsResult) {
