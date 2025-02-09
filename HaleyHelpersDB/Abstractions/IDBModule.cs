@@ -18,6 +18,5 @@ namespace Haley.Abstractions {
 
     public interface IDBModule<P> : IDBModule
         where P : ModuleParam {
-        Task<object> Execute(P parameter);
     }
 }
