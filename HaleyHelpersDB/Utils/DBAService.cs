@@ -6,14 +6,16 @@ using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Configuration;
 using System.Data;
+using Haley.Models;
 using System.Net.Http;
 using System.Runtime.Intrinsics.Arm;
 using System.Security.Cryptography;
 
-namespace Haley.Models {
+namespace Haley.Utils {
 
     public delegate void DictionaryUpdatedEvent();
 
+    //DB ADAPTER SERVICE
     public class DBAService : ConcurrentDictionary<string, DBAdapter>, IDBService {
         public static DBAService Instance => GetInstance();
         static DBAService _instance;
