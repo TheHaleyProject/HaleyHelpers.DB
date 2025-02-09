@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 namespace Haley.Abstractions {
     public interface IDBModule {
         Type ParameterType { get; }
-        Task<object> Execute(object parameter);
+        Task<object> Execute(ModuleParam parameter);
 
         Task Initiate(object seed);
 
