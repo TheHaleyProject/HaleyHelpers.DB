@@ -12,7 +12,7 @@ namespace Haley.Abstractions {
         Type ParameterType { get; }
         Task<object> Execute(ModuleParam parameter);
 
-        Task Initiate(object seed);
+        Task Initiate(ModuleSeed seed);
 
     }
 
