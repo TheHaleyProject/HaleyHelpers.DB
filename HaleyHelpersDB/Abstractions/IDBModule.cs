@@ -13,7 +13,7 @@ namespace Haley.Abstractions {
         Task<object> Execute(ModuleParam parameter);
 
         Task Initiate(ModuleSeed seed);
-
+        public IDBService Dbs { get; internal set; }
     }
 
     public interface IDBModule<P> : IDBModule
