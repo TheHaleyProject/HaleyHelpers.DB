@@ -9,11 +9,11 @@ using System.Threading.Tasks;
 
 namespace Haley.Abstractions {
     public interface IDBModule {
+        bool IsInitialized { get; }
         Type ParameterType { get; }
         Task<object> Execute(ModuleParam parameter);
-
-        Task Initiate(ModuleSeed seed);
-        public IDBService Dbs { get; internal set; }
+        Task PostInitialization(ModuleSeed data);
+        IDBService Dbs { get; }
     }
 
     public interface IDBModule<P> : IDBModule
