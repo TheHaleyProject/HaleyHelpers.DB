@@ -27,7 +27,7 @@ namespace Haley.Utils {
         public bool TryRegisterModule<M>(string key, M module) where M : IDBModule {
             if (string.IsNullOrWhiteSpace(key)) throw new ArgumentNullException(nameof(key));
             if (this.ContainsKey(key)) throw new InvalidDataException($@"Key {key} already exists.");
-
+            if (module is DefaultModule)
             return this.TryAdd(key, module);
         }
 
