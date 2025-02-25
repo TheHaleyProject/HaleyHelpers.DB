@@ -10,9 +10,10 @@ using Haley.Models;
 namespace Haley.Abstractions {
     public interface IDBModuleService : IDictionary<string,IDBModule> {
         public IDBService DBService { get; }
-        public bool TryRegisterModule<M>(Enum key, M module)
-            where M : IDBModule; //Register a module
-        public bool TryRegisterModule<M>(string key, M module)
+        public IDBModule this[Enum key] { get;set; }
+        public bool ContainsKey(Enum key);
+        public Task Initialize(); //will happen only once.
+        public bool TryRegisterModule<M>(ModuleInfo<M> info)
             where M : IDBModule; //Register a module
     }
 }

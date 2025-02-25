@@ -12,8 +12,7 @@ namespace Haley.Abstractions {
         bool IsInitialized { get; }
         Type ParameterType { get; }
         Task<object> Execute(ModuleParam parameter);
-        Task PostInitialization(ModuleSeed data);
-        IDBService Dbs { get; }
+        event EventHandler<DBModuleInitializedArgs> ModuleInitialized;
     }
 
     public interface IDBModule<P> : IDBModule
