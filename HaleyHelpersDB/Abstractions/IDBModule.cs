@@ -11,12 +11,12 @@ namespace Haley.Abstractions {
     public interface IDBModule {
         bool IsInitialized { get; }
         Type ParameterType { get; }
-        Task<object> Execute(DBModuleParam parameter);
+        Task<object> Execute(DBQueryInput parameter);
         event EventHandler<DBModuleInitializedArgs> ModuleInitialized;
         Task<bool> Initialize(); //will happen only once. //Why is this needed?
     }
 
     public interface IDBModule<P> : IDBModule
-        where P : DBModuleParam {
+        where P : DBQueryInput {
     }
 }
