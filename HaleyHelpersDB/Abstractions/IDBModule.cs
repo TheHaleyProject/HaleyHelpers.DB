@@ -8,15 +8,15 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Haley.Abstractions {
-    public interface IDBModule {
-        bool IsInitialized { get; }
-        Type ParameterType { get; }
-        Task<object> Execute(DBQueryInput parameter);
-        event EventHandler<DBModuleInitializedArgs> ModuleInitialized;
-        Task<bool> Initialize(); //will happen only once. //Why is this needed?
+    public interface IDBModule<P> : IDBModule
+        where P : DBArg {
     }
 
-    public interface IDBModule<P> : IDBModule
-        where P : DBQueryInput {
+    public interface IDBModule {
+        Task<object> Execute(DBArg parameter); //Just to enable storing in a common dictionary
+        event EventHandler<DBModuleInitializedArgs> ModuleInitialized;
+        Task<bool> Initialize(); //will happen only once. //Why is this needed?
+        bool IsInitialized { get; }
+        Type ParameterType { get; }
     }
 }

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Haley.Models{
    //Reason for creating this as struct is that we don't need to change the referenced value anywhere.
-    public class DBQueryInput {
+    public class DBArg {
         //internal string DBAKey { get; set; }
         //public string InputJson { get; set; }
         //public ModuleParam(string dbakey) {
@@ -26,6 +26,6 @@ namespace Haley.Models{
         //    }
         //    return true;
         //}
-        public DBQueryInput() { }
+        public DBArg() { }
     }
 }
