@@ -12,7 +12,7 @@ namespace Haley.Abstractions {
         public IDBService DBService { get; }
         public IDBModule this[Enum key] { get;set; }
         public bool ContainsKey(Enum key);
-        public Task Initialize(); //will happen only once.
+       
         public bool TryRegisterModule<M>(ModuleInfo<M> info)
             where M : IDBModule; //Register a module
     }

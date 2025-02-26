@@ -31,7 +31,8 @@ namespace Haley.Utils {
                 if (info.Seed["dbs"] == null || !info.Seed["dbs"].GetType().IsAssignableFrom(typeof(IDBService))) {
                     info.Seed["dbs"] = _dbService;
                 }
-                defMdl.Initialize(info.Seed); //Default module initialization
+                defMdl.SetSeed(info.Seed); //Set the seed only via this service.
+                defMdl.Initialize(); //Default module initialization
             }
             //todo: think of better ways to handle this registration.
             return this.TryAdd(info.Key,info.Module);

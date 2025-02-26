@@ -13,6 +13,7 @@ namespace Haley.Abstractions {
         Type ParameterType { get; }
         Task<object> Execute(ModuleParam parameter);
         event EventHandler<DBModuleInitializedArgs> ModuleInitialized;
+        Task<bool> Initialize(); //will happen only once. //Why is this needed?
     }
 
     public interface IDBModule<P> : IDBModule
