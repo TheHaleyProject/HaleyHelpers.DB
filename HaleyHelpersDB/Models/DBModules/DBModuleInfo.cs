@@ -8,22 +8,22 @@ using Haley.Utils;
 
 namespace Haley.Models{
     //Contains information needed for the module to load it's queries.
-    public class ModuleInfo<M> where M : IDBModule {
+    public class DBModuleInfo<M> where M : IDBModule {
         public string Key { get; set; }
         public Dictionary<string, object> Seed { get; set; }
         public M Module { get; set; }
 
-        public ModuleInfo(string key, M module, Dictionary<string, object> seed) {
+        public DBModuleInfo(string key, M module, Dictionary<string, object> seed) {
             Key = key;
             Module = module;
             Seed = seed ?? new Dictionary<string, object>();
         }
 
-        public ModuleInfo(string key, M module) : this (key,module,null){
+        public DBModuleInfo(string key, M module) : this (key,module,null){
         }
-        public ModuleInfo(Enum @enum, M module) : this(@enum.GetKey(), module, null) {
+        public DBModuleInfo(Enum @enum, M module) : this(@enum.GetKey(), module, null) {
         }
-        public ModuleInfo(Enum @enum, M module, Dictionary<string, object> seed) :this (@enum.GetKey(),module,seed){
+        public DBModuleInfo(Enum @enum, M module, Dictionary<string, object> seed) :this (@enum.GetKey(),module,seed){
         }
     }
 }

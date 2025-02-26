@@ -21,11 +21,11 @@ namespace Haley.Utils {
 
         //Try to get the dependency injection resolver to build the DBModule? Will it be an overkill??
         //How do we pass the DB Service to the modules? Should we delegate this task to the Module? or is it fine to pass the service from here itself?
-        public bool TryRegisterModule<M>(ModuleInfo<M> info) where M : IDBModule {
-            if (info == null) throw new ArgumentNullException(nameof(ModuleInfo<M>));
+        public bool TryRegisterModule<M>(DBModuleInfo<M> info) where M : IDBModule {
+            if (info == null) throw new ArgumentNullException(nameof(DBModuleInfo<M>));
             if (string.IsNullOrWhiteSpace(info.Key)) throw new ArgumentNullException(nameof(info.Key));
             if (this.ContainsKey(info.Key)) throw new InvalidDataException($@"Key {info.Key} already exists.");
-            if (info.Module is DefaultModule defMdl) {
+            if (info.Module is DefaultDBModule defMdl) {
                 if (info.Seed == null) info.Seed = new Dictionary<string, object>();
                 if (!info.Seed.ContainsKey("dbs")) info.Seed.TryAdd("dbs", _dbService); //Add dbservice
                 if (info.Seed["dbs"] == null || !info.Seed["dbs"].GetType().IsAssignableFrom(typeof(IDBService))) {

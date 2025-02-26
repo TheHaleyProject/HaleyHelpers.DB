@@ -13,7 +13,7 @@ namespace Haley.Abstractions {
         public IDBModule this[Enum key] { get;set; }
         public bool ContainsKey(Enum key);
        
-        public bool TryRegisterModule<M>(ModuleInfo<M> info)
+        public bool TryRegisterModule<M>(DBModuleInfo<M> info)
             where M : IDBModule; //Register a module
     }
 }

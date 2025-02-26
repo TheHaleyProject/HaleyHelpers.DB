@@ -6,15 +6,15 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Haley.Models {
-    public abstract class DefaultModule<P> : DefaultModule, IDBModule<P> where P : ModuleParam {
+    public abstract class DefaultDBModule<P> : DefaultDBModule, IDBModule<P> where P : DBModuleParam {
     }
 
-    public abstract class DefaultModule : IDBModule {
+    public abstract class DefaultDBModule : IDBModule {
         public Type ParameterType { get; internal set; }
         protected  Dictionary<string,object> Seed { get; set; } //Either set by inheritance or by internal services
         internal void SetSeed(Dictionary<string, object> seed) => Seed = seed ?? new Dictionary<string, object>();
         public event EventHandler<DBModuleInitializedArgs> ModuleInitialized;
-        public abstract Task<object> Execute(ModuleParam parameter);
+        public abstract Task<object> Execute(DBModuleParam parameter);
         protected IDBService DBS { get; set; }
         public bool IsInitialized { get; protected set; }
         public virtual Task<bool>  Initialize() {
