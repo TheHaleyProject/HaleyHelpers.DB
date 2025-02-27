@@ -8,6 +8,9 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Haley.Abstractions {
+
+
+
     public interface IDBModule<P> : IDBModule
         where P : IModuleParameter {
     }
