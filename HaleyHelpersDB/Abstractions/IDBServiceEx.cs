@@ -8,10 +8,10 @@ using Haley.Enums;
 using Haley.Models;
 
 namespace Haley.Abstractions {
-    public interface IDBModuleService{
+    public interface IDBServiceEx : IDBService{
         public Task<bool> TryRegisterModule<M,P>(M module, Dictionary<string, object> seed)
-            where P: DBArg
+            where P: IModuleParameter
             where M : IDBModule<P>; //Register a module
-        public Task<object> Execute<P>(P arg) where P : DBArg;
+        public Task<object> Execute<P>(P arg) where P : IModuleParameter;
     }
 }

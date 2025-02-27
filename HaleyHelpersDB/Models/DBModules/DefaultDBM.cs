@@ -6,12 +6,12 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Haley.Models {
-    public abstract class DefaultDBM<P> : DefaultDBM, IDBModule<P> where P : DBArg {
-
+    public abstract class DefaultDBM<P> : DefaultDBM, IDBModule<P> where P : IModuleParameter {
+       
     }
 
     public abstract class DefaultDBM : IDBModule {
-        public abstract Task<object> Execute(DBArg parameter);
+        public abstract Task<object> Execute(IModuleParameter parameter);
         public Type ParameterType { get; internal set; }
         protected Dictionary<string, object> Seed { get; set; } //Either set by inheritance or by internal services
         internal void SetSeed(Dictionary<string, object> seed) => Seed = seed ?? new Dictionary<string, object>();

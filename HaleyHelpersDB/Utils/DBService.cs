@@ -16,11 +16,11 @@ namespace Haley.Utils {
     public delegate void DictionaryUpdatedEvent();
 
     //DB ADAPTER SERVICE
-    public class DBAService : ConcurrentDictionary<string, DBAdapter>, IDBService {
-        public static DBAService Instance => GetInstance();
-        static DBAService _instance;
-        static DBAService GetInstance() {
-            if (_instance == null) { _instance = new DBAService(); }
+    public class DBService : ConcurrentDictionary<string, DBAdapter>, IDBService {
+        public static DBService Instance => GetInstance();
+        static DBService _instance = new DBService();
+        static DBService GetInstance() {
+            if (_instance == null) { _instance = new DBService(); }
             return _instance;
         }
 
@@ -33,7 +33,7 @@ namespace Haley.Utils {
         IDBServiceUtil _util;
 
         ConcurrentDictionary<string, (string cstr, TargetDB dbtype)> connectionstrings = new ConcurrentDictionary<string, (string cstr, TargetDB dbtype)>();
-        public DBAService() {
+        public DBService() {
         }
 
         public event DictionaryUpdatedEvent Updated;
