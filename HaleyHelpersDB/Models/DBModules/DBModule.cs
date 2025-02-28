@@ -1,19 +1,21 @@
 ﻿using Haley.Abstractions;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace Haley.Models {
-    public abstract class DefaultDBM<P> : DefaultDBM, IDBModule<P> where P : IModuleParameter {
-       
+    public abstract class DBModule<P> : DBModule, IDBModule<P> where P : IModuleParameter {
+        protected ConcurrentDictionary<Enum,Func<P, (bool,object)>> CmdDic = new ConcurrentDictionary<Enum, Func<P, (bool, object)>>();
     }
 
-    public abstract class DefaultDBM : IDBModule {
-        public abstract Task<object> Execute(IModuleParameter parameter);
-        public Type ParameterType { get; internal set; }
+    public abstract class DBModule : IDBModule {
+        public abstract Task<(bool status, object result)> Execute(IModuleParameter parameter);
+        public Type ParameterType { get; private set; }
         protected Dictionary<string, object> Seed { get; set; } //Either set by inheritance or by internal services
+        internal void SetParameterType(Type ptype) => ParameterType = ptype;
         internal void SetSeed(Dictionary<string, object> seed) => Seed = seed ?? new Dictionary<string, object>();
         public event EventHandler<DBModuleInitializedArgs> ModuleInitialized;
         protected IDBService DBS { get; set; }
