@@ -13,7 +13,7 @@ namespace Haley.Models {
     public abstract class DBModule<P> : DBModule, IDBModule<P> where P : IModuleParameter {
         //protected ConcurrentDictionary<Enum,Func<P, Task<DBMResult>>> CmdDic = new ConcurrentDictionary<Enum, Func<P, Task<DBMResult>>>();
         public override async Task<DBMResult> Execute(IModuleParameter parameter) {
-            if (parameter == null) return new DBMResult(false, "Input parameter cannot be null");
+            if (parameter == null || parameter.Command == null) return new DBMResult(false, "Input parameter and the Command property of Input parameter cannot be null");
             if (!CmdDic.ContainsKey(parameter.Command)) return new DBMResult(false, $@"Command {parameter.Command} is not registered.");
             if (!parameter.GetType().IsAssignableFrom(typeof(P))) return new DBMResult(false,$@"Input parameter should be of type {typeof(P)}");
             //return await CmdDic[parameter.Command].DynamicInvoke((P)parameter);
@@ -66,7 +66,7 @@ namespace Haley.Models {
                         if (method.ReturnType != typeof(Task<DBMResult>)) throw new Exception($@"Registration Failed: {nameof(method.DeclaringType)} : {nameof(method.Name)} --  Return type doesn't match {nameof(Task<DBMResult>)}");
 
                         var inParams = method.GetParameters();
-                        if (inParams == null || inParams[0] == null || !inParams[0].GetType().IsAssignableFrom(typeof(IModuleParameter))) throw new Exception($@"Registration Failed: {nameof(method.DeclaringType)} : {nameof(method.Name)} --  Signature doesn't match the type {nameof(IModuleParameter)}");
+                        if (inParams == null || inParams[0] == null || !inParams[0].ParameterType.IsAssignableFrom(typeof(IModuleParameter))) throw new Exception($@"Registration Failed: {nameof(method.DeclaringType)} : {nameof(method.Name)} --  Signature doesn't match the type {nameof(IModuleParameter)}");
 
                         //Instead of storing as MethodInfo, it is better to generate the delegate and call this, as the overhead and reflection time is less during runtime.
                         CmdDic.TryAdd(@cmd, (DBMExecuteDelegate)Delegate.CreateDelegate(typeof(DBMExecuteDelegate), this, method.Name));

@@ -7,5 +7,5 @@ using System.Threading.Tasks;
 
 namespace Haley.Models
 {
-    public delegate Task<DBMResult> DBMExecuteDelegate(string parameter);
+    public delegate Task<DBMResult> DBMExecuteDelegate(IModuleParameter parameter);
 }

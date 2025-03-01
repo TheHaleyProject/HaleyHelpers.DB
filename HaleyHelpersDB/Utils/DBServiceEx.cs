@@ -28,6 +28,7 @@ namespace Haley.Utils {
         public async Task<DBMResult> TryRegisterModule<M>(M module, Dictionary<string, object> seed)
             where M : IDBModule //Register a module
         {
+            DBMResult result = new DBMResult(false);
             try {
                 //First try to see if the Module has a generic parameter, if yes, then focus on getting it else check if the user has defined any parameter type directly.
                 var dbmInterface = typeof(M).GetInterfaces()?.FirstOrDefault(p =>

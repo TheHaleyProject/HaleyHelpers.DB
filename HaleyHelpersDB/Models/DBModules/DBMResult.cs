@@ -18,5 +18,9 @@ namespace Haley.Models
         }
         public DBMResult(bool status) : this(status, null, null) { }
         public DBMResult(bool status,string message) : this(status, message, null) { }
+
+        public override string ToString() {
+            return $@"{Status} : {Message}";
+        }
     }
 }
