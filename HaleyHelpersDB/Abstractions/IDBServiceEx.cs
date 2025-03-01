@@ -9,12 +9,13 @@ using Haley.Models;
 
 namespace Haley.Abstractions {
     public interface IDBServiceEx : IDBService{
-        public Task<(bool status, string msg)> TryRegisterModule<M>()
+        public Task<DBMResult> TryRegisterModule<M>()
            where M : IDBModule, new(); //Register a module
-        public Task<(bool status, string msg)> TryRegisterModule<M>(Dictionary<string, object> seed)
+        public Task<DBMResult> TryRegisterModule<M>(Dictionary<string, object> seed)
            where M : IDBModule, new(); //Register a module
-        public Task<(bool status, string msg)> TryRegisterModule<M>(M module, Dictionary<string, object> seed)
+        public Task<DBMResult> TryRegisterModule<M>(M module, Dictionary<string, object> seed)
             where M : IDBModule; //Register a module
-        public Task<(bool status,object result)> Execute<P>(P arg) where P : IModuleParameter;
+        public Task<DBMResult> Execute<P>(P arg) where P : IModuleParameter;
+        public (bool status,string methodName) GetCommandStatus<P>(Enum cmd) where P : IModuleParameter;
     }
 }

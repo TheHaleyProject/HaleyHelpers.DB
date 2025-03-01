@@ -9,17 +9,16 @@ using System.Threading.Tasks;
 
 namespace Haley.Abstractions {
 
-
-
     public interface IDBModule<P> : IDBModule
         where P : IModuleParameter {
     }
 
     public interface IDBModule {
-        Task<(bool status, object result)> Execute(IModuleParameter parameter); //Just to enable storing in a common dictionary
+        Task<DBMResult> Execute(IModuleParameter parameter); //Just to enable storing in a common dictionary
         event EventHandler<DBModuleInitializedArgs> ModuleInitialized;
         Task<bool> Initialize(); //will happen only once. //Why is this needed?
         bool IsInitialized { get; }
         Type ParameterType { get; }
+        (bool, string) GetInvocationMethodName(Enum cmd);
     }
 }

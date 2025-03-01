@@ -5,8 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Haley.Abstractions{
-    public interface IModuleParameter {
-        public Enum Command { get; set; }
-    }
+namespace Haley.Models
+{
+    public delegate Task<DBMResult> DBMExecuteDelegate(string parameter);
 }
