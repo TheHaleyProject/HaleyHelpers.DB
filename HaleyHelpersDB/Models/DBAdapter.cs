@@ -1,21 +1,15 @@
-﻿using Haley.Utils;
-using System.Collections.Concurrent;
-using System.Data;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Configuration;
+﻿using Haley.Abstractions;
 using Haley.Enums;
-using System.Reflection.Metadata.Ecma335;
-using System.Configuration;
+using System.Data;
 
 namespace Haley.Models
 {
     //Each connecton util is expected to contain one connection string within it.
-    public class DBAdapter
-    {
-        public DbaEntry Entry { get; }  //Read only.
+    public class DBAdapter : IDBAdapter {
+        public IDBAdapterInfo Entry { get; }  //Read only.
         #region Public Methods
 
-        public async Task<DataSet> ExecuteReader(DBSInput input, params (string key, object value)[] parameters) {
+        public async Task<DataSet> ExecuteReader(IDBInput input, params (string key, object value)[] parameters) {
             input.Conn = Entry.ConnectionString;
             switch (Entry.DBType) {
                 case TargetDB.mssql: //Microsoft SQL
@@ -31,7 +25,7 @@ namespace Haley.Models
             throw new NotImplementedException("No handler found for the given DB Type");
         }
 
-        public async Task<object> ExecuteNonQuery(DBSInput input, params (string key, object value)[] parameters) {
+        public async Task<object> ExecuteNonQuery(IDBInput input, params (string key, object value)[] parameters) {
             input.Conn = Entry.ConnectionString;
             switch (Entry.DBType) {
                 case TargetDB.mssql: //Microsoft SQL
@@ -47,13 +41,13 @@ namespace Haley.Models
             throw new NotImplementedException("No handler found for the given DB Type");
         }
 
-        public void UpdateDBEntry(DbaEntry newentry) {
+        public void UpdateDBEntry(IDBAdapterInfo newentry) {
             Entry.Update(newentry);
         }
 
         #endregion
 
         //If root config key is null, then update during run-time is not possible.
-        public DBAdapter(DbaEntry entry) { Entry = entry;  }
+        public DBAdapter(IDBAdapterInfo entry) { Entry = entry;  }
     }
 }

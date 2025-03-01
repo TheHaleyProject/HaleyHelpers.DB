@@ -1,22 +1,17 @@
 ﻿using Haley.Abstractions;
 using Haley.Enums;
-using Haley.Utils;
+using Haley.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
-using System.Configuration;
 using System.Data;
-using Haley.Models;
-using System.Net.Http;
-using System.Runtime.Intrinsics.Arm;
-using System.Security.Cryptography;
 
 namespace Haley.Utils {
 
     public delegate void DictionaryUpdatedEvent();
 
     //DB ADAPTER SERVICE
-    public class DBService : ConcurrentDictionary<string, DBAdapter>, IDBService {
+    public class DBService : ConcurrentDictionary<string, IDBAdapter>, IDBService {
         public static DBService Instance => GetInstance();
         static DBService _instance = new DBService();
         static DBService GetInstance() {
@@ -160,7 +155,7 @@ namespace Haley.Utils {
             //Supposed to read the json files and then generate all the adapters.
             try {
                 var root = GetConfigurationRoot(reload);
-                var entries = root.GetSection(DBA_ENTRIES)?.Get<DbaEntry[]>(); //Fetch all entry information.
+                var entries = root.GetSection(DBA_ENTRIES)?.Get<DBAdapterInfo[]>(); //Fetch all entry information.
                 if (entries == null) return this;
                 foreach (var entry in entries) {
 
@@ -213,7 +208,7 @@ namespace Haley.Utils {
         }
         #endregion Add or Generate Connections
 
-        public IDBService Add(DbaEntry entry, bool replace = true) {
+        public IDBService Add(IDBAdapterInfo entry, bool replace = true) {
             var adapter = new DBAdapter(entry);
 
             if (!replace && ContainsKey(entry.AdapterKey)) return this;
@@ -270,13 +265,13 @@ namespace Haley.Utils {
             _util = util;
         }
 
-        public async Task<object> Read(DBSInput input,  params (string key, object value)[] parameters) {
-            input.ReturnsResult = true;
+        public async Task<object> Read(IDBInput input,  params (string key, object value)[] parameters) {
+            if (input is DBSInput inputEx && inputEx.ReturnsResult) inputEx.ReturnsResult = true;
             return await ExecuteInternal(input, parameters);
         }
 
-        public async Task<object> NonQuery(DBSInput input, params (string key, object value)[] parameters) {
-            input.ReturnsResult = false;
+        public async Task<object> NonQuery(IDBInput input, params (string key, object value)[] parameters) {
+            if (input is DBSInput inputEx && inputEx.ReturnsResult) inputEx.ReturnsResult = false;
             return await ExecuteInternal(input, parameters);
         }
 
@@ -295,19 +290,15 @@ namespace Haley.Utils {
         //    return result.ToArray();
         //}
 
-        async Task<object> ExecuteInternal(DBSInput input, params (string key, object value)[] parameters) {
+        async Task<object> ExecuteInternal(IDBInput input, params (string key, object value)[] parameters) {
             if (string.IsNullOrWhiteSpace(input.DBAKey)) throw new ArgumentException("input.DBAKey cannot be empty");
             if (!ContainsKey(input.DBAKey)) throw new ArgumentNullException($@"DBAKey missing: {input.DBAKey} is not found in the dictionary");
             try {
                 object result = null;
-                switch (input.ReturnsResult) {
-                    case true:
-                    result= (await this[input.DBAKey]?.ExecuteReader(input, parameters))?.Select(true)?.Convert()?.ToList();
-                    break;
-                    case false:
-                    default:
+                if (input is DBSInput inputEx && inputEx.ReturnsResult) {
+                    result = (await this[input.DBAKey]?.ExecuteReader(input, parameters))?.Select(true)?.Convert()?.ToList();
+                } else {
                     result = await this[input.DBAKey]?.ExecuteNonQuery(input, parameters);
-                    break;
                 }
                 return await GetFirst(result,input.Filter);
             } catch (Exception ex) {

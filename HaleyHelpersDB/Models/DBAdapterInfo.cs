@@ -1,15 +1,11 @@
-﻿using Haley.Enums;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Haley.Abstractions;
+using Haley.Enums;
 
 namespace Haley.Models {
 
-    public class DbaEntry {
+    public class DBAdapterInfo : IDBAdapterInfo {
 
-        public DbaEntry() {
+        public DBAdapterInfo() {
             DBType = TargetDB.unknown;
         }
         public string ConnectionString { get; set; }
@@ -20,7 +16,7 @@ namespace Haley.Models {
         public string SchemaName { get; set; }
         public string Sha { get; set; }
 
-        public DbaEntry Update(DbaEntry entry) {
+        public IDBAdapterInfo Update(IDBAdapterInfo entry) {
             //It is intentional not to update the ConnetionKey and AdapterKey.
 
             DBName = entry.DBName;

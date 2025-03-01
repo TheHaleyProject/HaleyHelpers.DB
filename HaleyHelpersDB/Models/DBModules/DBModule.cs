@@ -1,24 +1,18 @@
 ﻿using Haley.Abstractions;
 using Microsoft.Extensions.Logging;
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
-using static System.Collections.Specialized.BitVector32;
 
 namespace Haley.Models {
     public abstract class DBModule<P> : DBModule, IDBModule<P> where P : IModuleParameter {
         //protected ConcurrentDictionary<Enum,Func<P, Task<DBMResult>>> CmdDic = new ConcurrentDictionary<Enum, Func<P, Task<DBMResult>>>();
-        public override async Task<Feedback> Execute(IModuleParameter parameter) {
+        public override async Task<IFeedback> Execute(IModuleParameter parameter) {
             if (parameter == null || parameter.Command == null) return new Feedback(false, "Input parameter and the Command property of Input parameter cannot be null");
             if (!CmdDic.ContainsKey(parameter.Command)) return new Feedback(false, $@"Command {parameter.Command} is not registered.");
             if (!parameter.GetType().IsAssignableFrom(typeof(P))) return new Feedback(false,$@"Input parameter should be of type {typeof(P)}");
             //return await CmdDic[parameter.Command].DynamicInvoke((P)parameter);
             var result = CmdDic[parameter.Command].DynamicInvoke((P)parameter);
-            if (result is Task<Feedback> task) {
+            if (result is Task<IFeedback> task) {
                 return await task;
             }
             return new Feedback(false, "Unable to invoke the delegate command");
@@ -27,7 +21,7 @@ namespace Haley.Models {
 
     public abstract class DBModule : IDBModule {
         protected ConcurrentDictionary<Enum, DBMExecuteDelegate> CmdDic = new ConcurrentDictionary<Enum, DBMExecuteDelegate>();
-        public abstract Task<Feedback> Execute(IModuleParameter parameter);
+        public abstract Task<IFeedback> Execute(IModuleParameter parameter);
         public Type ParameterType { get; private set; }
         protected Dictionary<string, object> Seed { get; set; } //Either set by inheritance or by internal services
         internal void SetParameterType(Type ptype) => ParameterType = ptype;
@@ -37,9 +31,9 @@ namespace Haley.Models {
         protected ILogger Logger { get; set; }
         public bool IsInitialized { get; protected set; }
         protected virtual Task<bool> InitializeInternal() { return Task.FromResult(true); }
-        public (bool, string) GetInvocationMethodName(Enum cmd) {
-            if (CmdDic.ContainsKey(cmd) && CmdDic[cmd] != null && CmdDic[cmd].Method != null) return (true, $@"{CmdDic[cmd].Method.DeclaringType?.FullName} : {CmdDic[cmd].Method.Name}");
-            return (false, "Command Not registered");
+        public IFeedback GetInvocationMethodName(Enum cmd) {
+            if (CmdDic.ContainsKey(cmd) && CmdDic[cmd] != null && CmdDic[cmd].Method != null) return new Feedback(true, $@"{CmdDic[cmd].Method.DeclaringType?.FullName} : {CmdDic[cmd].Method.Name}");
+            return new Feedback(false, "Command Not registered");
         }
         public async Task<bool> Initialize() {
             if (IsInitialized) throw new Exception("Module already initialized");

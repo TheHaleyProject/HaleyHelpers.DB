@@ -3,12 +3,13 @@ using Npgsql;
 using System.Data;
 using System.Text.RegularExpressions;
 using Haley.Utils;
+using Haley.Abstractions;
 
 namespace Haley.Models {
 
     public static class PgsqlHandler {
 
-        public static async Task<object> ExecuteNonQuery(DBSInput input, params (string key, object value)[] parameters) {
+        public static async Task<object> ExecuteNonQuery(IDBInput input, params (string key, object value)[] parameters) {
             try {
                 var result = await ExecuteInternal(input, async (cmd) => {
                     int status = 0;
@@ -38,7 +39,7 @@ namespace Haley.Models {
             }
         }
 
-        public static async Task<DataSet> ExecuteReader(DBSInput input, params (string key, object value)[] parameters) {
+        public static async Task<DataSet> ExecuteReader(IDBInput input, params (string key, object value)[] parameters) {
             var result = await ExecuteInternal(input, async (cmd) => {
 
                 if (input.Prepare) {
@@ -70,7 +71,7 @@ namespace Haley.Models {
             return result as DataSet;
         }
 
-        private static async Task<object> ExecuteInternal(DBSInput input, Func<NpgsqlCommand, Task<object>> processor, params (string key, object value)[] parameters) {
+        private static async Task<object> ExecuteInternal(IDBInput input, Func<NpgsqlCommand, Task<object>> processor, params (string key, object value)[] parameters) {
             using (var conn = NpgsqlDataSource.Create(input.Conn)) {
                 //INITIATE CONNECTION
                 input.Logger?.LogInformation($@"Opening connection - {input.Conn}");
@@ -91,7 +92,7 @@ namespace Haley.Models {
             }
         }
 
-        private static NpgsqlCommand MakeCommand(NpgsqlDataSource conn,  DBSInput input, params (string key, object value)[] parameters) {
+        private static NpgsqlCommand MakeCommand(NpgsqlDataSource conn, IDBInput input, params (string key, object value)[] parameters) {
             //await dsource.OpenConnectionAsync();
             var cmd = conn.CreateCommand(input.Query);
             //ADD PARAMETERS IF REQUIRED

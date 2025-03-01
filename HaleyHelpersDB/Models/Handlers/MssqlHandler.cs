@@ -1,4 +1,5 @@
-﻿using Microsoft.Data.SqlClient;
+﻿using Haley.Abstractions;
+using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using System.Data;
 
@@ -6,7 +7,7 @@ namespace Haley.Models {
 
     public static class MssqlHandler {
         // https://stackoverflow.com/questions/35928312/c-sharp-mysqlcommand-executenonquery-return-1
-        public static async Task<object> ExecuteNonQuery(DBSInput input, params (string key, object value)[] parameters) {
+        public static async Task<object> ExecuteNonQuery(IDBInput input, params (string key, object value)[] parameters) {
             var result = await ExecuteInternal(input, async (cmd) => {
                 int status = 0;
                  
@@ -19,7 +20,7 @@ namespace Haley.Models {
             return 0;
         }
 
-        public static async Task<DataSet> ExecuteReader(DBSInput input, params (string key, object value)[] parameters) {
+        public static async Task<DataSet> ExecuteReader(IDBInput input, params (string key, object value)[] parameters) {
             var result = await ExecuteInternal(input, async (cmd) => {
                 var reader = await cmd.ExecuteReaderAsync();
                 DataSet ds = new DataSet();
@@ -45,7 +46,7 @@ namespace Haley.Models {
             return result as DataSet;
         }
 
-        private static async Task<object> ExecuteInternal(DBSInput input, Func<SqlCommand, Task<object>> processor, params (string key, object value)[] parameters) {
+        private static async Task<object> ExecuteInternal(IDBInput input, Func<SqlCommand, Task<object>> processor, params (string key, object value)[] parameters) {
             using (SqlConnection conn = new SqlConnection(input.Conn)) {
                 //INITIATE CONNECTION
                 input.Logger?.LogInformation($@"Opening connection - {input.Conn}");

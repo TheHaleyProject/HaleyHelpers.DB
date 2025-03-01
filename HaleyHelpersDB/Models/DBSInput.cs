@@ -1,13 +1,9 @@
-﻿using Haley.Enums;
+﻿using Haley.Abstractions;
+using Haley.Enums;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Haley.Models {
-    public class DBSInput {
+    public class DBSInput : IDBInput {
         public string DBAKey { get; set; }
         public ResultFilter Filter { get; set; }
         public string Conn { get; set; }
