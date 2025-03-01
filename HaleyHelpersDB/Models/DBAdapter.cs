@@ -15,7 +15,7 @@ namespace Haley.Models
         public DbaEntry Entry { get; }  //Read only.
         #region Public Methods
 
-        public async Task<DataSet> ExecuteReader(DBInput input, params (string key, object value)[] parameters) {
+        public async Task<DataSet> ExecuteReader(DBSInput input, params (string key, object value)[] parameters) {
             input.Conn = Entry.ConnectionString;
             switch (Entry.DBType) {
                 case TargetDB.mssql: //Microsoft SQL
@@ -31,7 +31,7 @@ namespace Haley.Models
             throw new NotImplementedException("No handler found for the given DB Type");
         }
 
-        public async Task<object> ExecuteNonQuery(DBInput input, params (string key, object value)[] parameters) {
+        public async Task<object> ExecuteNonQuery(DBSInput input, params (string key, object value)[] parameters) {
             input.Conn = Entry.ConnectionString;
             switch (Entry.DBType) {
                 case TargetDB.mssql: //Microsoft SQL

@@ -6,7 +6,7 @@ namespace Haley.Models {
 
     public static class SqliteHandler {
 
-        public static async Task<object> ExecuteNonQuery(DBInput input, params (string key, object value)[] parameters) {
+        public static async Task<object> ExecuteNonQuery(DBSInput input, params (string key, object value)[] parameters) {
             var result = await ExecuteInternal(input, async (cmd) => {
 
                 int status = 0;
@@ -20,7 +20,7 @@ namespace Haley.Models {
             return 0;
         }
 
-        public static async Task<DataSet> ExecuteReader(DBInput input, params (string key, object value)[] parameters) {
+        public static async Task<DataSet> ExecuteReader(DBSInput input, params (string key, object value)[] parameters) {
             var result = await ExecuteInternal(input, async (cmd) => {
                 var reader = await cmd.ExecuteReaderAsync();
                 DataSet ds = new DataSet();
@@ -44,7 +44,7 @@ namespace Haley.Models {
             return result as DataSet;
         }
 
-        private static async Task<object> ExecuteInternal(DBInput input, Func<SqliteCommand, Task<object>> processor, params (string key, object value)[] parameters) {
+        private static async Task<object> ExecuteInternal(DBSInput input, Func<SqliteCommand, Task<object>> processor, params (string key, object value)[] parameters) {
             using (var conn = new SqliteConnection() { ConnectionString = input.Conn }) {
                 //INITIATE CONNECTION
                 input.Logger?.LogInformation($@"Opening connection - {input.Conn}");

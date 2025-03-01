@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Haley.Models {
-    public class DBAInfo : DBAResult {
-        public DBAInfo(string message) :base(message){  }
+    public class FeedbackInfo : Feedback {
+        public FeedbackInfo(string message) :base(true,message){  }
     }
 }

@@ -13,8 +13,8 @@ using System.Data;
 namespace Haley.Abstractions {
     public interface IDBService: IDictionary<string, DBAdapter> {
         //This should be stateless as every controller might call this concurrently.
-        public Task<object> Read(DBInput input, params (string key, object value)[] parameters);
-        public Task<object> NonQuery(DBInput input,  params (string key, object value)[] parameters);
+        public Task<object> Read(DBSInput input, params (string key, object value)[] parameters);
+        public Task<object> NonQuery(DBSInput input,  params (string key, object value)[] parameters);
         public void SetServiceUtil(IDBServiceUtil util);
         public Task<object> GetFirst(object input, ResultFilter filter = ResultFilter.None);
         public IConfigurationRoot GetConfigurationRoot(bool reload = false, bool force_reload = false);

@@ -270,12 +270,12 @@ namespace Haley.Utils {
             _util = util;
         }
 
-        public async Task<object> Read(DBInput input,  params (string key, object value)[] parameters) {
+        public async Task<object> Read(DBSInput input,  params (string key, object value)[] parameters) {
             input.ReturnsResult = true;
             return await ExecuteInternal(input, parameters);
         }
 
-        public async Task<object> NonQuery(DBInput input, params (string key, object value)[] parameters) {
+        public async Task<object> NonQuery(DBSInput input, params (string key, object value)[] parameters) {
             input.ReturnsResult = false;
             return await ExecuteInternal(input, parameters);
         }
@@ -295,7 +295,7 @@ namespace Haley.Utils {
         //    return result.ToArray();
         //}
 
-        async Task<object> ExecuteInternal(DBInput input, params (string key, object value)[] parameters) {
+        async Task<object> ExecuteInternal(DBSInput input, params (string key, object value)[] parameters) {
             if (string.IsNullOrWhiteSpace(input.DBAKey)) throw new ArgumentException("input.DBAKey cannot be empty");
             if (!ContainsKey(input.DBAKey)) throw new ArgumentNullException($@"DBAKey missing: {input.DBAKey} is not found in the dictionary");
             try {
@@ -314,7 +314,7 @@ namespace Haley.Utils {
                 input.Logger?.LogError($@"Error for: {input.Query}");
                 input.Logger?.LogError(ex.Message);
                 input.Logger?.LogError(ex.StackTrace);
-                return await GetFirst(new DBAError(ex.Message));
+                return await GetFirst(new FeedbackError(ex.Message));
             }
         }
         #endregion

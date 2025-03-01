@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Haley.Models {
-    public class DBAError : DBAResult {
-        public DBAError(string message) : base(message) { }
+    public class FeedbackError : Feedback {
+        public FeedbackError(string message) : base(false,message) { }
     }
 }
