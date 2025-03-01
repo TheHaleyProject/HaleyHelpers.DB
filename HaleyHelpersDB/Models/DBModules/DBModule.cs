@@ -38,7 +38,7 @@ namespace Haley.Models {
         public bool IsInitialized { get; protected set; }
         protected virtual Task<bool> InitializeInternal() { return Task.FromResult(true); }
         public (bool, string) GetInvocationMethodName(Enum cmd) {
-            if (CmdDic.ContainsKey(cmd) && CmdDic[cmd] != null && CmdDic[cmd].Method != null) return (true, CmdDic[cmd].Method.Name);
+            if (CmdDic.ContainsKey(cmd) && CmdDic[cmd] != null && CmdDic[cmd].Method != null) return (true, $@"{CmdDic[cmd].Method.DeclaringType?.FullName} : {CmdDic[cmd].Method.Name}");
             return (false, "Command Not registered");
         }
         public async Task<bool> Initialize() {
