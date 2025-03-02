@@ -12,11 +12,19 @@ namespace Haley.Utils {
 
     //DB ADAPTER SERVICE
     public class DBService : ConcurrentDictionary<string, IDBAdapter>, IDBService {
-        public static DBService Instance => GetInstance();
-        static DBService _instance = new DBService();
-        static DBService GetInstance() {
-            if (_instance == null) { _instance = new DBService(); }
-            return _instance;
+
+        private static DBService _instance;
+        public static DBService Instance {
+            get {
+                if (_instance == null) { _instance = new DBService(); }
+                return _instance;
+            }
+            set { if (_instance == null) _instance = value; }
+        }
+
+        public DBService SetInstance(IDBService instance) {
+            if (instance is DBService dbs) Instance = dbs;
+            return this;
         }
 
         const string DBA_ENTRIES = "DbaEntries";
@@ -29,8 +37,10 @@ namespace Haley.Utils {
 
         ConcurrentDictionary<string, (string cstr, TargetDB dbtype)> connectionstrings = new ConcurrentDictionary<string, (string cstr, TargetDB dbtype)>();
         public DBService() {
+            //Id = Guid.NewGuid();
         }
 
+        public Guid Id { get; } = Guid.NewGuid();
         public event DictionaryUpdatedEvent Updated;
         #region Global Methods
 
