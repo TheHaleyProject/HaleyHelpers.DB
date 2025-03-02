@@ -57,7 +57,8 @@ namespace Haley.Utils {
                 if (module is DBModule dbMdl) {
                     dbMdl.SetSeed(seed); //Set the seed only via this service.
                     dbMdl.SetParameterType(paramType);
-                    await dbMdl.Initialize(); //Default module initialization
+                    var initializeStats = await dbMdl.Initialize(); //Default module initialization
+                    if (!initializeStats.Status) return initializeStats;
                 }
                 var status = _dic.TryAdd(paramType, module);
                 return new Feedback(status, status ? "Success" : "Failed to register the module");
@@ -91,9 +92,9 @@ namespace Haley.Utils {
                        targetfb = await TryRegisterModuleInternal(classType,null, null);
                     } catch (Exception ex) {
                         targetfb.Status = false;
-                        targetfb.Message = ex.Message;
+                        targetfb.Message = classType.Name + Environment.NewLine + ex.Message;
                     }
-                    targetfb.Result = classType.Name; //add the name of the class.
+                    targetfb.Message = classType.Name; //add the name of the class.
                     results.Add(targetfb);
                 }
             } catch (Exception ex) {
@@ -105,7 +106,7 @@ namespace Haley.Utils {
             if (result.Status) {
                 result.Message = $@"ASM : {assembly} - Registration completed";
             } else {
-                result.Message = String.Join(Environment.NewLine, results.Where(p => !p.Status).Select(q => q.Message).ToArray());
+                result.Message = $@"ASM : {assembly} - Failed with errors";
             }
             result.Result = results;
             return result;

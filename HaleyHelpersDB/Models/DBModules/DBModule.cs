@@ -32,14 +32,15 @@ namespace Haley.Models {
         public bool IsInitialized { get; protected set; }
         protected virtual Task<IFeedback> InitializeInternal() { return Task.FromResult((IFeedback)new Feedback(true)); }
         public IFeedback GetInvocationMethodName(Enum cmd) {
-            if (CmdDic.ContainsKey(cmd) && CmdDic[cmd] != null && CmdDic[cmd].Method != null) return new Feedback(true, $@"{CmdDic[cmd].Method.DeclaringType} : {CmdDic[cmd].Method.Name}");
+            if (CmdDic.ContainsKey(cmd) && CmdDic[cmd] != null && CmdDic[cmd].Method != null) return new Feedback(true, $@"{CmdDic[cmd].Method.DeclaringType?.Name} : {CmdDic[cmd].Method.Name}");
             return new Feedback(false, "Command Not registered");
         }
         public async Task<IFeedback> Initialize() {
             if (IsInitialized) return new Feedback(false,"Module already initialized");
             //During registration, the DBS will be provided by the DBMService as long as the module is inherited from DefaultModule.
             SetServices();
-            if (!(await RegisterCommands(GetType())).Status)return new Feedback(false,"Command registrations failed"); //Start with this type
+            var cmdRegister = await RegisterCommands(GetType());
+            if (!cmdRegister.Status) return cmdRegister; //Start with this type
             if (!(await InitializeInternal()).Status) return new Feedback(false,"Internal Initialization failed"); //setup the default values.
             await OnInitialization(); //Do we await?
             return new Feedback(true);
@@ -47,37 +48,38 @@ namespace Haley.Models {
 
         async Task<IFeedback> RegisterCommands(Type target) {
             //For each type and their base level.
-            IFeedback registerfb = new Feedback();
-            bool registered = false;
-            while (!registered) {
-                var methods = target
+            List<string> failures = new List<string>();
+            var methods = target
                     .GetMethods(BindingFlags.NonPublic | BindingFlags.Instance)
                     .Where(p => p.GetCustomAttribute<CMDAttribute>() != null); //Let us focus only on the private methods.
-                foreach (var method in methods) {
-                    try {
-                        var cmdattr = method.GetCustomAttribute<CMDAttribute>();
-                        if (cmdattr.Name == null || !(cmdattr.Name is Enum @cmd)) throw new Exception($@"Registration Failed: {method.DeclaringType} : {method.Name} -- {nameof(CMDAttribute)} should have a name of type {nameof(Enum)}");
+            foreach (var method in methods) {
+                try {
+                    var cmdattr = method.GetCustomAttribute<CMDAttribute>();
+                    if (cmdattr.Name == null || !(cmdattr.Name is Enum @cmd)) throw new Exception($@"{method.DeclaringType?.Name} : {method.Name} -- {nameof(CMDAttribute)} should have a name of type {nameof(Enum)}");
 
-                        if (method.ReturnType != typeof(Task<IFeedback>)) throw new Exception($@"Registration Failed: {method.DeclaringType} : {method.Name} --  Return type doesn't match {nameof(Task<IFeedback>)}");
+                    if (method.ReturnType != typeof(Task<IFeedback>)) throw new Exception($@"{method.DeclaringType?.Name} : {method.Name} --  Return type doesn't match {nameof(Task<IFeedback>)}");
 
-                        var inParams = method.GetParameters();
-                        if (inParams == null || inParams[0] == null || !inParams[0].ParameterType.IsAssignableFrom(typeof(IModuleParameter))) throw new Exception($@"Registration Failed: {method.DeclaringType} : {method.Name} --  Signature doesn't match the type {nameof(IModuleParameter)}");
+                    var inParams = method.GetParameters();
+                    if (inParams == null || inParams[0] == null || !inParams[0].ParameterType.IsAssignableFrom(typeof(IModuleParameter))) throw new Exception($@"{method.DeclaringType?.Name} : {method.Name} --  Signature doesn't match the type {nameof(IModuleParameter)}");
 
-                        //Instead of storing as MethodInfo, it is better to generate the delegate and call this, as the overhead and reflection time is less during runtime.
-                        if (CmdDic.ContainsKey(@cmd)) throw new Exception($@"Failed to register command : {@cmd} for method {method.DeclaringType}-{method.Name}. The command is already registered to method {CmdDic[@cmd].Method}");
-                        CmdDic.TryAdd(@cmd, (DBMExecuteDelegate)Delegate.CreateDelegate(typeof(DBMExecuteDelegate), this, method.Name));
-                    } catch (Exception ex) {
-                        Logger?.LogError(ex.Message);
-                        throw; //So that we know that it is not registered.
-                    }
-                }
-                if (target.BaseType != null) {
-                    registered = (await RegisterCommands(target.BaseType)).Status;
-                } else {
-                    registered = true;
+                    //Instead of storing as MethodInfo, it is better to generate the delegate and call this, as the overhead and reflection time is less during runtime.
+                    if (CmdDic.ContainsKey(@cmd)) throw new Exception($@"{@cmd} for method {method.DeclaringType?.Name}-{method.Name}. The command is already registered to method {CmdDic[@cmd].Method?.Name}");
+                    CmdDic.TryAdd(@cmd, (DBMExecuteDelegate)Delegate.CreateDelegate(typeof(DBMExecuteDelegate), this, method.Name));
+                } catch (Exception ex) {
+                    Logger?.LogError(ex.Message);
+                    failures.Add(ex.Message);
+                    //throw; //So that we know that it is not registered.
                 }
             }
-            return new Feedback(registered);
+
+            if (target.BaseType != null) {
+                var deepRegister = await RegisterCommands(target.BaseType);
+                if (!deepRegister.Status && deepRegister.Result is List<string> deepFailures) {
+                    failures.AddRange(deepFailures);
+                }
+            }
+
+            return new Feedback(failures?.Count < 1) { Result = failures };
         }
 
         void SetServices() {
