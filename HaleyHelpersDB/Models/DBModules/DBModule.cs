@@ -21,6 +21,19 @@ namespace Haley.Models {
             }
             return new Feedback(false, "Unable to invoke the delegate command");
         }
+
+        protected string PrepareQuery(string query,Dictionary<string,string> queryParams) {
+            string result = query;
+            if (string.IsNullOrWhiteSpace(result)) return result;
+            if (queryParams == null || queryParams.Count < 1) return result;
+            foreach (var item in queryParams) {
+                //Take the key and add $ as prefix/suffix and replace in the result
+                if (string.IsNullOrWhiteSpace(item.Key.Trim()) || string.IsNullOrWhiteSpace(item.Value.Trim())) continue;
+                var target = $@"${item.Key.Trim()}$";
+                result = result.Replace(target, item.Value.Trim());
+            }
+            return result;
+        }
     }
 
     public abstract class DBModule : IDBModule {
