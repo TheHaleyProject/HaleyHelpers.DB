@@ -13,7 +13,7 @@
     <SignAssembly>True</SignAssembly>
     <AssemblyOriginatorKeyFile>..\..\HaleyProject\HaleyProject.snk</AssemblyOriginatorKeyFile>
     <PackageIcon>Haley.png</PackageIcon>
-    <Version>0.0.17</Version>
+    <Version>0.0.18</Version>
     <IncludeSymbols>True</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <PackageProjectUrl>https://github.com/TheHaleyProject/HaleyHelpers.DB</PackageProjectUrl>
@@ -46,6 +46,20 @@
   </ItemGroup>
 
   <Import Project="$(SolutionDir)ProjectReferences_$(SolutionName).txt" Condition="Exists('$(SolutionDir)ProjectReferences_$(SolutionName).txt')" />
+  <!--<Choose>
+    <When Condition="Exists($(HaleyAbstractions))">
+      <ItemGroup>
+        <ProjectReference Include="$(HaleyAbstractions)\HaleyAbstractions.csproj">
+          <Name>HaleyAbstractions</Name>
+        </ProjectReference>
+      </ItemGroup>
+    </When>
+    <Otherwise>
+      <ItemGroup>
+        <PackageReference Include="Haley.Abstractions" Version="1.2.0" />
+      </ItemGroup>
+    </Otherwise>
+  </Choose>-->
   <Choose>
     <When Condition="Exists($(HaleyHelpers))">
       <ItemGroup>
@@ -56,7 +70,7 @@
     </When>
     <Otherwise>
       <ItemGroup>
-        <PackageReference Include="Haley.Helpers" Version="2.3.0" />
+        <PackageReference Include="Haley.Helpers" Version="2.3.1" />
       </ItemGroup>
     </Otherwise>
   </Choose>

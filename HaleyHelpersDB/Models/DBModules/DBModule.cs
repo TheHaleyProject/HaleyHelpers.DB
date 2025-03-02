@@ -30,23 +30,24 @@ namespace Haley.Models {
         protected IDBService DBS { get; set; }
         protected ILogger Logger { get; set; }
         public bool IsInitialized { get; protected set; }
-        protected virtual Task<bool> InitializeInternal() { return Task.FromResult(true); }
+        protected virtual Task<IFeedback> InitializeInternal() { return Task.FromResult((IFeedback)new Feedback(true)); }
         public IFeedback GetInvocationMethodName(Enum cmd) {
-            if (CmdDic.ContainsKey(cmd) && CmdDic[cmd] != null && CmdDic[cmd].Method != null) return new Feedback(true, $@"{CmdDic[cmd].Method.DeclaringType?.FullName} : {CmdDic[cmd].Method.Name}");
+            if (CmdDic.ContainsKey(cmd) && CmdDic[cmd] != null && CmdDic[cmd].Method != null) return new Feedback(true, $@"{CmdDic[cmd].Method.DeclaringType} : {CmdDic[cmd].Method.Name}");
             return new Feedback(false, "Command Not registered");
         }
-        public async Task<bool> Initialize() {
-            if (IsInitialized) throw new Exception("Module already initialized");
+        public async Task<IFeedback> Initialize() {
+            if (IsInitialized) return new Feedback(false,"Module already initialized");
             //During registration, the DBS will be provided by the DBMService as long as the module is inherited from DefaultModule.
             SetServices();
-            await RegisterCommands(GetType()); //Start with this type
-            if (!await InitializeInternal()) return false; //setup the default values.
+            if (!(await RegisterCommands(GetType())).Status)return new Feedback(false,"Command registrations failed"); //Start with this type
+            if (!(await InitializeInternal()).Status) return new Feedback(false,"Internal Initialization failed"); //setup the default values.
             await OnInitialization(); //Do we await?
-            return true;
+            return new Feedback(true);
         }
 
-        async Task<bool> RegisterCommands(Type target) {
+        async Task<IFeedback> RegisterCommands(Type target) {
             //For each type and their base level.
+            IFeedback registerfb = new Feedback();
             bool registered = false;
             while (!registered) {
                 var methods = target
@@ -55,14 +56,15 @@ namespace Haley.Models {
                 foreach (var method in methods) {
                     try {
                         var cmdattr = method.GetCustomAttribute<CMDAttribute>();
-                        if (cmdattr.Name == null || !(cmdattr.Name is Enum @cmd)) throw new Exception($@"Registration Failed: {nameof(method.DeclaringType)} : {nameof(method.Name)} -- {nameof(CMDAttribute)} should have a name of type {nameof(Enum)}");
+                        if (cmdattr.Name == null || !(cmdattr.Name is Enum @cmd)) throw new Exception($@"Registration Failed: {method.DeclaringType} : {method.Name} -- {nameof(CMDAttribute)} should have a name of type {nameof(Enum)}");
 
-                        if (method.ReturnType != typeof(Task<Feedback>)) throw new Exception($@"Registration Failed: {nameof(method.DeclaringType)} : {nameof(method.Name)} --  Return type doesn't match {nameof(Task<Feedback>)}");
+                        if (method.ReturnType != typeof(Task<IFeedback>)) throw new Exception($@"Registration Failed: {method.DeclaringType} : {method.Name} --  Return type doesn't match {nameof(Task<IFeedback>)}");
 
                         var inParams = method.GetParameters();
-                        if (inParams == null || inParams[0] == null || !inParams[0].ParameterType.IsAssignableFrom(typeof(IModuleParameter))) throw new Exception($@"Registration Failed: {nameof(method.DeclaringType)} : {nameof(method.Name)} --  Signature doesn't match the type {nameof(IModuleParameter)}");
+                        if (inParams == null || inParams[0] == null || !inParams[0].ParameterType.IsAssignableFrom(typeof(IModuleParameter))) throw new Exception($@"Registration Failed: {method.DeclaringType} : {method.Name} --  Signature doesn't match the type {nameof(IModuleParameter)}");
 
                         //Instead of storing as MethodInfo, it is better to generate the delegate and call this, as the overhead and reflection time is less during runtime.
+                        if (CmdDic.ContainsKey(@cmd)) throw new Exception($@"Failed to register command : {@cmd} for method {method.DeclaringType}-{method.Name}. The command is already registered to method {CmdDic[@cmd].Method}");
                         CmdDic.TryAdd(@cmd, (DBMExecuteDelegate)Delegate.CreateDelegate(typeof(DBMExecuteDelegate), this, method.Name));
                     } catch (Exception ex) {
                         Logger?.LogError(ex.Message);
@@ -70,12 +72,12 @@ namespace Haley.Models {
                     }
                 }
                 if (target.BaseType != null) {
-                    registered = await RegisterCommands(target.BaseType);
+                    registered = (await RegisterCommands(target.BaseType)).Status;
                 } else {
                     registered = true;
                 }
             }
-            return registered;
+            return new Feedback(registered);
         }
 
         void SetServices() {

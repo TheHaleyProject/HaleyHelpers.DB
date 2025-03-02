@@ -2,37 +2,45 @@
 using Haley.Models;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Reflection;
 
 namespace Haley.Utils {
     public class DBServiceEx : DBService, IDBServiceEx {
         ILogger _logger;
         ConcurrentDictionary<Type, IDBModule> _dic = new ConcurrentDictionary<Type, IDBModule>();
         public Task<IFeedback> TryRegisterModule<M>()
-         where M : IDBModule, new() {
+         where M : class, IDBModule, new() {
             return TryRegisterModule<M>(null);
         }
 
         public Task<IFeedback> TryRegisterModule<M>(Dictionary<string, object> seed)
-         where M : IDBModule,new() {
-            return TryRegisterModule<M>(Activator.CreateInstance<M>(), seed);
+         where M : class, IDBModule,new() {
+            return TryRegisterModule<M>(null, seed);
         }
 
         //Try to get the dependency injection resolver to build the DBModule? Will it be an overkill??
         //How do we pass the DB Service to the modules? Should we delegate this task to the Module? or is it fine to pass the service from here itself?
-        public async Task<IFeedback> TryRegisterModule<M>(M module, Dictionary<string, object> seed)
-            where M : IDBModule //Register a module
+        public Task<IFeedback> TryRegisterModule<M>(M module, Dictionary<string, object> seed)
+            where M : class, IDBModule //Register a module
         {
+            return TryRegisterModuleInternal(typeof(M),module ,seed);
+        }
+
+        async Task<IFeedback> TryRegisterModuleInternal(Type mType, IDBModule module, Dictionary<string,object> seed) {
             IFeedback result = new Feedback(false);
             try {
                 //First try to see if the Module has a generic parameter, if yes, then focus on getting it else check if the user has defined any parameter type directly.
-                var dbmInterface = typeof(M).GetInterfaces()?.FirstOrDefault(p =>
+                var dbmInterface = mType.GetInterfaces()?.FirstOrDefault(p =>
                     p.IsGenericType &&
                     p.Name == $@"{nameof(IDBModule)}`1");
 
                 if (dbmInterface == null) return new Feedback(false, $@"The module should implement the generic interface{nameof(IDBModule)}<> ");
+
+                if (module == null) module = (IDBModule)Activator.CreateInstance(mType);
                 Type paramType = dbmInterface.GetGenericArguments().Where(
                     p => p.GetInterfaces().Any(q => q.Name == $@"{nameof(IModuleParameter)}")
-                    ).FirstOrDefault() ?? module.ParameterType; 
+                    ).FirstOrDefault() ?? module.ParameterType;
                 if (paramType == null) return new Feedback(false, $@"The type argument of {nameof(IDBModule)} should implement {nameof(IModuleParameter)}");
                 ////var cmdType = paramType.GetInterfaces()?.FirstOrDefault(p => p.IsGenericType && p.Name == $@"{nameof(IModuleParameter)}`1");
                 ////if (cmdType == null) return (false, $@"The type argument of {nameof(IDBModule)} should implement {nameof(IModuleParameter)} ");//Even after above step if we dont' get the parameter type, don't register it.
@@ -52,7 +60,7 @@ namespace Haley.Utils {
                     await dbMdl.Initialize(); //Default module initialization
                 }
                 var status = _dic.TryAdd(paramType, module);
-                return  new Feedback(status, status ? "Success" : "Failed to register the module");
+                return new Feedback(status, status ? "Success" : "Failed to register the module");
                 //todo: think of better ways to handle this registration.
             } catch (Exception ex) {
                 return new Feedback(false, $@"Exception: {ex.Message}");
@@ -67,8 +75,40 @@ namespace Haley.Utils {
 
         public IFeedback GetCommandStatus<P>(Enum cmd) where P : IModuleParameter {
             var argT = typeof(P);
-            if (!_dic.ContainsKey(argT)) return new Feedback(false, $@"{nameof(argT)} is not registered to any module");
+            if (!_dic.ContainsKey(argT)) return new Feedback(false, $@"{argT} is not registered to any module");
             return _dic[argT].GetInvocationMethodName(cmd);
+        }
+
+        public async Task<IFeedback> TryRegisterAssembly(Assembly assembly) {
+            List<IFeedback> results = new List<IFeedback>();
+            if (assembly == null) return new Feedback(false, "Assembly is null");
+            try {
+               var targetClasses = assembly.GetExportedTypes()?.Where(p => p.GetCustomAttribute<RegisterDBModuleAttribute>() != null);
+                if (targetClasses == null || targetClasses.Count() < 1) return new Feedback(false, $@"Unable to find any class with attribute {nameof(RegisterDBModuleAttribute)} ");
+                foreach (var classType in targetClasses) {
+                    IFeedback targetfb = new Feedback() {Result = classType.Name };
+                    try {
+                       targetfb = await TryRegisterModuleInternal(classType,null, null);
+                    } catch (Exception ex) {
+                        targetfb.Status = false;
+                        targetfb.Message = ex.Message;
+                    }
+                    targetfb.Result = classType.Name; //add the name of the class.
+                    results.Add(targetfb);
+                }
+            } catch (Exception ex) {
+                return new Feedback(false, $@"Exception: {ex.Message} ");
+            }
+
+            bool regsuccess = results.All(p => p.Status);
+            var result = new Feedback(results.All(p => p.Status));
+            if (result.Status) {
+                result.Message = $@"ASM : {assembly} - Registration completed";
+            } else {
+                result.Message = String.Join(Environment.NewLine, results.Where(p => !p.Status).Select(q => q.Message).ToArray());
+            }
+            result.Result = results;
+            return result;
         }
 
         public DBServiceEx(ILogger logger) {

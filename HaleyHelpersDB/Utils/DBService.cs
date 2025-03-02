@@ -22,8 +22,8 @@ namespace Haley.Utils {
             set { if (_instance == null) _instance = value; }
         }
 
-        public DBService SetInstance(IDBService instance) {
-            if (instance is DBService dbs) Instance = dbs;
+        public IDBService SetAsInstance() {
+            Instance = this; 
             return this;
         }
 
