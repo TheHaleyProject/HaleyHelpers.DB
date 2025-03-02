@@ -68,10 +68,10 @@ namespace Haley.Utils {
             }
         }
 
-        public Task<IFeedback> Execute<P>(P arg) where P : IModuleParameter {
+        public Task<IFeedback> Execute<P>(Enum cmd, P arg) where P : IModuleParameter {
             var argT = typeof(P);
             if (!_dic.ContainsKey(argT)) throw new KeyNotFoundException($@"{argT}");
-            return _dic[argT].Execute(arg);
+            return _dic[argT].Execute(cmd,arg);
         }
 
         public IFeedback GetCommandStatus<P>(Enum cmd) where P : IModuleParameter {

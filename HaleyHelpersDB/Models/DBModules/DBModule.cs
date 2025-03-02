@@ -6,12 +6,16 @@ using System.Reflection;
 namespace Haley.Models {
     public abstract class DBModule<P> : DBModule, IDBModule<P> where P : IModuleParameter {
         //protected ConcurrentDictionary<Enum,Func<P, Task<DBMResult>>> CmdDic = new ConcurrentDictionary<Enum, Func<P, Task<DBMResult>>>();
-        public override async Task<IFeedback> Execute(IModuleParameter parameter) {
-            if (parameter == null || parameter.Command == null) return new Feedback(false, "Input parameter and the Command property of Input parameter cannot be null");
-            if (!CmdDic.ContainsKey(parameter.Command)) return new Feedback(false, $@"Command {parameter.Command} is not registered.");
+        public override Task<IFeedback> Execute(Enum cmd) {
+            return Execute(cmd, default(P));
+        }
+
+        public override async Task<IFeedback> Execute(Enum cmd, IModuleParameter parameter) {
+            if (parameter == null || cmd == null) return new Feedback(false, "Input parameter and the Command property of Input parameter cannot be null");
+            if (!CmdDic.ContainsKey(cmd)) return new Feedback(false, $@"Command {cmd} is not registered.");
             if (!parameter.GetType().IsAssignableFrom(typeof(P))) return new Feedback(false,$@"Input parameter should be of type {typeof(P)}");
             //return await CmdDic[parameter.Command].DynamicInvoke((P)parameter);
-            var result = CmdDic[parameter.Command].DynamicInvoke((P)parameter);
+            var result = CmdDic[cmd].DynamicInvoke((P)parameter);
             if (result is Task<IFeedback> task) {
                 return await task;
             }
@@ -21,7 +25,8 @@ namespace Haley.Models {
 
     public abstract class DBModule : IDBModule {
         protected ConcurrentDictionary<Enum, DBMExecuteDelegate> CmdDic = new ConcurrentDictionary<Enum, DBMExecuteDelegate>();
-        public abstract Task<IFeedback> Execute(IModuleParameter parameter);
+        public abstract Task<IFeedback> Execute(Enum cmd);
+        public abstract Task<IFeedback> Execute(Enum cmd,IModuleParameter parameter);
         public Type ParameterType { get; private set; }
         protected Dictionary<string, object> Seed { get; set; } //Either set by inheritance or by internal services
         internal void SetParameterType(Type ptype) => ParameterType = ptype;
