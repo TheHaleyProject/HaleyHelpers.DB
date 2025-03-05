@@ -9,6 +9,27 @@ namespace Haley.Utils {
     public class DBServiceEx : DBService, IDBServiceEx {
         ILogger _logger;
         ConcurrentDictionary<Type, IDBModule> _dic = new ConcurrentDictionary<Type, IDBModule>();
+
+        ConcurrentDictionary<Type, string> _moduleKeys = new ConcurrentDictionary<Type, string>();
+
+        string _defaultAdapterKey = string.Empty;
+
+        public void SetDefaultAdapterKey(string adapterKey) {
+            //Set the adapter key for all the modules (if not provided along with the parameter)
+            if (string.IsNullOrWhiteSpace(adapterKey)) throw new ArgumentNullException(nameof(adapterKey));
+            _defaultAdapterKey = adapterKey;
+        }
+        public void SetDefaultAdapterKey<P>(string adapterKey) 
+            where P : IModuleParameter {
+            if (string.IsNullOrWhiteSpace(adapterKey)) throw new ArgumentNullException(nameof(adapterKey));
+            //Set default adapter key for the specific module, if not provided along with the parameter.
+            if (!_moduleKeys.ContainsKey(typeof(P))) {
+                _moduleKeys.TryAdd(typeof(P), adapterKey);
+            } else {
+                _moduleKeys[typeof(P)] = adapterKey;
+            }
+        }
+
         public Task<IFeedback> TryRegisterModule<M>()
          where M : class, IDBModule, new() {
             return TryRegisterModule<M>(null);
@@ -71,6 +92,15 @@ namespace Haley.Utils {
         public Task<IFeedback> Execute<P>(Enum cmd, P arg) where P : IModuleParameter {
             var argT = typeof(P);
             if (!_dic.ContainsKey(argT)) throw new KeyNotFoundException($@"{argT}");
+            if (string.IsNullOrWhiteSpace(arg.AdapterKey)) {
+                if (_moduleKeys.ContainsKey(typeof(P))) {
+                    arg.AdapterKey = _moduleKeys[typeof(P)];
+                } else if (!string.IsNullOrWhiteSpace(_defaultAdapterKey)) {
+                    arg.AdapterKey = _defaultAdapterKey;
+                } else {
+                    throw new ArgumentNullException("Cannot execute without a default adapter key.");
+                }
+            }
             return _dic[argT].Execute(cmd,arg);
         }
 

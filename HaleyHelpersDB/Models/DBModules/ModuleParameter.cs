@@ -8,8 +8,11 @@ using System.Threading.Tasks;
 namespace Haley.Models
 {
     public abstract class ModuleParameter : IModuleParameter {
-        public Dictionary<string, string> QueryParams { get; protected set; } 
-
-        public ModuleParameter() { QueryParams = new Dictionary<string, string>(); }
+        public string AdapterKey { get; set; } 
+        public Dictionary<string, string> QueryParams { get; protected set; }
+        public ModuleParameter(): this (null) { } 
+        public ModuleParameter(string adapterKey) {
+            AdapterKey = adapterKey;
+            QueryParams = new Dictionary<string, string>(); } 
     }
 }

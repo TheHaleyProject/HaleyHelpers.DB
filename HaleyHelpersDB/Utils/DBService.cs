@@ -276,12 +276,12 @@ namespace Haley.Utils {
         }
 
         public async Task<object> Read(IDBInput input,  params (string key, object value)[] parameters) {
-            if (input is DBSInput inputEx && inputEx.ReturnsResult) inputEx.ReturnsResult = true;
+            if (input is DBSInput inputEx) inputEx.ReturnsResult = true;
             return await ExecuteInternal(input, parameters);
         }
 
         public async Task<object> NonQuery(IDBInput input, params (string key, object value)[] parameters) {
-            if (input is DBSInput inputEx && inputEx.ReturnsResult) inputEx.ReturnsResult = false;
+            if (input is DBSInput inputEx) inputEx.ReturnsResult = false;
             return await ExecuteInternal(input, parameters);
         }
 
