@@ -13,12 +13,42 @@ namespace Haley.Models {
 
     internal abstract class SqlHandlerBase<C> : ISqlHandler<C> where C : IDbCommand {
         public SqlHandlerBase() { }
-
         DbConnection GetConnection(string conStr) {
             if (typeof(C) == typeof(MySqlCommand)) return new MySqlConnection() { ConnectionString = conStr};
             if (typeof(C) == typeof(SqliteCommand)) return new SqliteConnection() { ConnectionString = conStr };
             if (typeof(C) == typeof(SqlCommand)) return new SqlConnection() { ConnectionString = conStr };
             return null;
+        }
+
+        IDbDataParameter GetParameter() {
+            if (typeof(C) == typeof(MySqlCommand)) return new MySqlParameter();
+            if (typeof(C) == typeof(SqliteCommand)) return new SqliteParameter();
+            if (typeof(C) == typeof(SqlCommand)) return new SqlParameter();
+            if (typeof(C) == typeof(NpgsqlCommand)) return new NpgsqlParameter();
+            return null;
+        }
+
+        protected virtual void FillParameters(IDbCommand cmd, IDBInput input, params (string key, object value)[] parameters) {
+            //ADD PARAMETERS IF REQUIRED
+            if (parameters.Length > 0) {
+                IDbDataParameter[] msp = new IDbDataParameter[parameters.Length];
+                for (int i = 0; i < parameters.Length; i++) {
+                    var key = parameters[i].key;
+                    if (!key.StartsWith("@")) { key = "@" + key; } //Check why this is required.
+
+                    msp[i] = GetParameter();
+                    msp[i].ParameterName = key;
+
+                    bool flag = true; //start with true
+                    if (input.ParamHandler != null) {
+                        flag = input.ParamHandler.Invoke(key, msp[i]);
+                    }
+                    if (flag) {
+                        msp[i].Value = parameters[i].value;
+                    }
+                    cmd.Parameters.Add(msp[i]);
+                }
+            }
         }
 
         public virtual async Task<object> ExecuteInternal(IDBInput input, Func<C, Task<object>> processor, params (string key, object value)[] parameters) {
@@ -27,31 +57,10 @@ namespace Haley.Models {
                 input.Logger?.LogInformation($@"Opening connection - {input.Conn}");
                 //conn.Open();
                 await conn.OpenAsync();
-
                 IDbCommand cmd = conn.CreateCommand();
                 cmd.CommandText = input.Query;
                 input.Logger?.LogInformation("Creating query");
-
-                //ADD PARAMETERS IF REQUIRED
-                if (parameters.Length > 0) {
-                    P[] msp = new P[parameters.Length];
-                    for (int i = 0; i < parameters.Length; i++) {
-                        var key = parameters[i].key;
-                        if (!key.StartsWith("@")) { key = "@" + key; } //Check why this is required.
-
-                        msp[i] = new P();
-                        msp[i].ParameterName = key;
-
-                        bool flag = true; //start with true
-                        if (input.ParamHandler != null) {
-                            flag = input.ParamHandler.Invoke(key, msp[i]);
-                        }
-                        if (flag) {
-                            msp[i].Value = parameters[i].value;
-                        }
-                        cmd.Parameters.Add(msp[i]);
-                    }
-                }
+                FillParameters(cmd, input, parameters);
                 input.Logger?.LogInformation("About to execute");
                 var result = await processor.Invoke((C)cmd);
                 await conn.CloseAsync();
@@ -124,62 +133,6 @@ namespace Haley.Models {
 
         public Task<object> ExecuteScalar(IDBInput input, params (string key, object value)[] parameters) {
             throw new NotImplementedException();
-        }
-
-        protected async Task<object> ExecuteInternal(IDBInput input, Func<NpgsqlCommand, Task<object>> processor, params (string key, object value)[] parameters) {
-            using (var conn = NpgsqlDataSource.Create(input.Conn)) {
-                //INITIATE CONNECTION
-                input.Logger?.LogInformation($@"Opening connection - {input.Conn}");
-
-                ////If schema name is available, try to set search path for this connection.
-                //if (!string.IsNullOrWhiteSpace(schemaname)) {
-                //    input.Logger?.LogInformation($@"Schema name found - {schemaname}");
-                //    var searchPathCmd = MakeCommand(conn, $@"set search_path to {schemaname}",input.Logger);
-                //    var status = await searchPathCmd.ExecuteNonQueryAsync(); //Let us first set the search path for this.
-                //}
-
-                var cmd = MakeCommand(conn, input, parameters);
-                input.Logger?.LogInformation("About to execute");
-
-                var result = await processor.Invoke(cmd);
-                input.Logger?.LogInformation("Connection closed");
-                return result;
-            }
-        }
-
-        private NpgsqlCommand MakeCommand(NpgsqlDataSource conn, IDBInput input, params (string key, object value)[] parameters) {
-            //await dsource.OpenConnectionAsync();
-            var cmd = conn.CreateCommand(input.Query);
-            //ADD PARAMETERS IF REQUIRED
-            if (parameters.Length > 0) {
-                // NpgsqlParameter[] msp = new NpgsqlParameter[parameters.Length];
-                for (int i = 0; i < parameters.Length; i++) {
-                    var key = parameters[i].key;
-                    NpgsqlParameter msp = new NpgsqlParameter();
-                    msp.ParameterName = key;
-
-                    bool flag = true; //start with true
-                    if (input.ParamHandler != null) {
-                        flag = input.ParamHandler.Invoke(key,msp);
-                    }
-                    if (flag) {
-                        var pvalue = parameters[i].value;
-                        //if (pvalue != null &&  pvalue.GetType() == typeof(string)) {
-                        //    var pvalueStr = pvalue.ToString()!;
-                        //    //Uri.UnescapeDataString
-                        //    pvalue = Regex.Unescape(pvalue!.ToString()).Replace("'", "''")
-                        //    //pvalue = Uri.UnescapeDataString(pvalue!.ToString())
-                        //    //pvalue = pvalue.ToString()
-                        //    //   .Replace("'","''")
-                        //    //   .Replace("\\u0027", "\\u0027\\u0027"); //If it is a string, replace the single quote.
-                        //}
-                        msp.Value = pvalue;
-                    }
-                    if (!key.StartsWith("@")) { key = "@" + key; }
-                    cmd.Parameters.Add(msp);
-                }
-            }
-            return cmd;
         }
     }
 }
