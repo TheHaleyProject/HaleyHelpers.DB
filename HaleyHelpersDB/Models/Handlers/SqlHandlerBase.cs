@@ -13,14 +13,14 @@ namespace Haley.Models {
 
     internal abstract class SqlHandlerBase<C> : ISqlHandler<C> where C : IDbCommand {
         public SqlHandlerBase() { }
-        DbConnection GetConnection(string conStr) {
+        protected virtual DbConnection GetConnection(string conStr) {
             if (typeof(C) == typeof(MySqlCommand)) return new MySqlConnection() { ConnectionString = conStr};
             if (typeof(C) == typeof(SqliteCommand)) return new SqliteConnection() { ConnectionString = conStr };
             if (typeof(C) == typeof(SqlCommand)) return new SqlConnection() { ConnectionString = conStr };
             return null;
         }
 
-        IDbDataParameter GetParameter() {
+        protected virtual IDbDataParameter GetParameter() {
             if (typeof(C) == typeof(MySqlCommand)) return new MySqlParameter();
             if (typeof(C) == typeof(SqliteCommand)) return new SqliteParameter();
             if (typeof(C) == typeof(SqlCommand)) return new SqlParameter();
@@ -51,7 +51,7 @@ namespace Haley.Models {
             }
         }
 
-        public virtual async Task<object> ExecuteInternal(IDBInput input, Func<C, Task<object>> processor, params (string key, object value)[] parameters) {
+        public virtual async Task<object> ExecuteInternal(IDBInput input, Func<IDbCommand, Task<object>> processor, params (string key, object value)[] parameters) {
             using (var conn = GetConnection(input.Conn)) {
                 //INITIATE CONNECTION
                 input.Logger?.LogInformation($@"Opening connection - {input.Conn}");
@@ -62,7 +62,7 @@ namespace Haley.Models {
                 input.Logger?.LogInformation("Creating query");
                 FillParameters(cmd, input, parameters);
                 input.Logger?.LogInformation("About to execute");
-                var result = await processor.Invoke((C)cmd);
+                var result = await processor.Invoke(cmd);
                 await conn.CloseAsync();
                 input.Logger?.LogInformation("Connection closed");
                 return result;
@@ -71,7 +71,8 @@ namespace Haley.Models {
 
         public async Task<object> ExecuteNonQuery(IDBInput input, params (string key, object value)[] parameters) {
             try {
-                var result = await ExecuteInternal(input, async (cmd) => {
+                var result = await ExecuteInternal(input, async (dbc) => {
+                    if (!(dbc is DbCommand cmd)) return null;
                     int status = 0;
                     if (input.Prepare) {
                         await cmd.PrepareAsync();
@@ -100,8 +101,8 @@ namespace Haley.Models {
         }
 
         public async Task<DataSet> ExecuteReader(IDBInput input, params (string key, object value)[] parameters) {
-            var result = await ExecuteInternal(input, async (cmd) => {
-
+            var result = await ExecuteInternal(input, async (dbc) => {
+                if (!(dbc is DbCommand cmd)) return null;
                 if (input.Prepare) {
                     await cmd.PrepareAsync();
                 }
