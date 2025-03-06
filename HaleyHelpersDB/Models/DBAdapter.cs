@@ -9,6 +9,22 @@ namespace Haley.Models
         public IDBAdapterInfo Entry { get; }  //Read only.
         #region Public Methods
 
+        public async Task<object> ExecuteScalar(IDBInput input, params (string key, object value)[] parameters) {
+            input.Conn = Entry.ConnectionString;
+            switch (Entry.DBType) {
+                case TargetDB.mssql: //Microsoft SQL
+                return await MssqlHandler.ExecuteScalar(input, parameters);
+                case TargetDB.pgsql: //Postgres
+                return await PgsqlHandler.ExecuteScalar(input, parameters);
+                case TargetDB.maria: //Mariadb
+                case TargetDB.mysql:
+                return await MysqlHandler.ExecuteScalar(input, parameters);
+                case TargetDB.sqlite:
+                return await SqliteHandler.ExecuteScalar(input, parameters);
+            }
+            throw new NotImplementedException("No handler found for the given DB Type");
+        }
+
         public async Task<DataSet> ExecuteReader(IDBInput input, params (string key, object value)[] parameters) {
             input.Conn = Entry.ConnectionString;
             switch (Entry.DBType) {
