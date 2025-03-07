@@ -15,46 +15,55 @@ namespace Haley.Models {
     internal abstract class SqlHandlerBase<C> : ISqlHandler<C> where C : IDbCommand {
         public SqlHandlerBase() { }
 
-        protected abstract DbConnection GetConnection(string conStr);
-
+        protected abstract IDisposable GetConnection(string conStr);
+        protected abstract IDbCommand GetCommand(object connection);
         protected abstract IDbDataParameter GetParameter();
 
         protected virtual void FillParameters(IDbCommand cmd, IDBInput input, params (string key, object value)[] parameters) {
             //ADD PARAMETERS IF REQUIRED
             if (parameters.Length > 0) {
-                IDbDataParameter[] msp = new IDbDataParameter[parameters.Length];
+                //IDbDataParameter[] msp = new IDbDataParameter[parameters.Length];
                 for (int i = 0; i < parameters.Length; i++) {
                     var key = parameters[i].key;
-                    if (!key.StartsWith("@")) { key = "@" + key; } //Check why this is required.
-
-                    msp[i] = GetParameter();
-                    msp[i].ParameterName = key;
-
+                    var msp = GetParameter();
+                    msp.ParameterName = key;
                     bool flag = true; //start with true
                     if (input.ParamHandler != null) {
-                        flag = input.ParamHandler.Invoke(key, msp[i]);
+                        flag = input.ParamHandler.Invoke(key, msp);
                     }
                     if (flag) {
-                        msp[i].Value = parameters[i].value;
+                        msp.Value = parameters[i].value;
+                        //var pvalue = parameters[i].value;
+                        //if (pvalue != null &&  pvalue.GetType() == typeof(string)) {
+                        //    var pvalueStr = pvalue.ToString()!;
+                        //    //Uri.UnescapeDataString
+                        //    pvalue = Regex.Unescape(pvalue!.ToString()).Replace("'", "''")
+                        //    //pvalue = Uri.UnescapeDataString(pvalue!.ToString())
+                        //    //pvalue = pvalue.ToString()
+                        //    //   .Replace("'","''")
+                        //    //   .Replace("\\u0027", "\\u0027\\u0027"); //If it is a string, replace the single quote.
+                        //}
                     }
-                    cmd.Parameters.Add(msp[i]);
+                    if (!key.StartsWith("@")) { key = "@" + key; } //Check why this is required.
+                    cmd.Parameters.Add(msp);
                 }
             }
         }
 
         public virtual async Task<object> ExecuteInternal(IDBInput input, Func<IDbCommand, Task<object>> processor, params (string key, object value)[] parameters) {
-            using (var conn = GetConnection(input.Conn)) {
+            var conn = GetConnection(input.Conn);
+            using (conn) {
                 //INITIATE CONNECTION
                 input.Logger?.LogInformation($@"Opening connection - {input.Conn}");
                 //conn.Open();
-                await conn.OpenAsync();
-                IDbCommand cmd = conn.CreateCommand();
+                if (conn is DbConnection) await ((DbConnection)conn).OpenAsync();
+                IDbCommand cmd = GetCommand(conn);
                 cmd.CommandText = input.Query;
                 input.Logger?.LogInformation("Creating query");
                 FillParameters(cmd, input, parameters);
                 input.Logger?.LogInformation("About to execute");
                 var result = await processor.Invoke(cmd);
-                await conn.CloseAsync();
+                if (conn is DbConnection) await ((DbConnection)conn).CloseAsync();
                 input.Logger?.LogInformation("Connection closed");
                 return result;
             }
