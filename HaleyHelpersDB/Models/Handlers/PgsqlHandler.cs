@@ -9,68 +9,6 @@ namespace Haley.Models {
 
     public static class PgsqlHandler {
 
-        public static async Task<object> ExecuteNonQuery(IDBInput input, params (string key, object value)[] parameters) {
-            try {
-                var result = await ExecuteInternal(input, async (cmd) => {
-                    int status = 0;
-                    if (input.Prepare) {
-                        await cmd.PrepareAsync();
-                    }
-
-                    //If command has output parameter, no need to fetch.
-                    if (cmd.Parameters.Count > 0 && cmd.Parameters.Any(p => p.ParameterName == input.OutputName)) {
-                        var reader = await cmd.ExecuteReaderAsync();
-                        return cmd.Parameters.First(p => p.ParameterName == input.OutputName).Value; //return whatever we receive.
-                    }
-
-                    status = await cmd.ExecuteNonQueryAsync();
-                    return status;
-                }, parameters);
-
-
-                if (result?.GetType() == typeof(int)) { return int.Parse(result.ToString()! ?? "0"); }
-                return result ?? 0;
-            } catch (Exception ex) {
-                var msg = $@"Error: {ex.Message}";
-                if (ex is PostgresException npEx) {
-                    msg += $@", Query: {npEx.InternalQuery}";
-                }
-                throw new Exception(msg);
-            }
-        }
-
-        public static async Task<DataSet> ExecuteReader(IDBInput input, params (string key, object value)[] parameters) {
-            var result = await ExecuteInternal(input, async (cmd) => {
-
-                if (input.Prepare) {
-                    await cmd.PrepareAsync();
-                }
-
-                var reader = await cmd.ExecuteReaderAsync();
-
-                DataSet ds = new DataSet();
-                int count = 1;
-
-                if (reader == null) return null;
-
-                //Don't load the first one directly. It will not capture other results.
-                while (!reader.IsClosed) {
-                    //await reader.ReadAsync();
-                    //Read all tables and return the final one.
-                    DataTable dt = new DataTable();
-                    dt.Load(reader);
-                    //todo: put them inside a dataset and return
-                    ds.Tables.Add(dt);
-                    input.Logger?.LogInformation($@"For query {input.Query} - : Table Count - {count} created.");
-                    count++;
-                }
-                await reader.CloseAsync();
-                return ds;
-            }, parameters);
-
-            return result as DataSet;
-        }
-
         private static async Task<object> ExecuteInternal(IDBInput input, Func<NpgsqlCommand, Task<object>> processor, params (string key, object value)[] parameters) {
             using (var conn = NpgsqlDataSource.Create(input.Conn)) {
                 //INITIATE CONNECTION

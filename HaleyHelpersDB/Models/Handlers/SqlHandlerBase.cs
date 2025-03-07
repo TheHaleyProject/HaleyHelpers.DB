@@ -8,15 +8,14 @@ using System.Data.Common;
 using MySqlConnector;
 using Microsoft.Data.Sqlite;
 using Microsoft.Data.SqlClient;
+using System.Collections;
 
 namespace Haley.Models {
 
     internal abstract class SqlHandlerBase<C> : ISqlHandler<C> where C : IDbCommand {
         public SqlHandlerBase() { }
 
-        protected virtual DbConnection GetConnection(string conStr) {
-            return null;
-        }
+        protected abstract DbConnection GetConnection(string conStr);
 
         protected abstract IDbDataParameter GetParameter();
 
@@ -62,6 +61,7 @@ namespace Haley.Models {
         }
 
         public async Task<object> ExecuteNonQuery(IDBInput input, params (string key, object value)[] parameters) {
+
             try {
                 var result = await ExecuteInternal(input, async (dbc) => {
                     if (!(dbc is DbCommand cmd)) return null;
@@ -71,9 +71,9 @@ namespace Haley.Models {
                     }
 
                     //If command has output parameter, no need to fetch.
-                    if (cmd.Parameters.Count > 0 && cmd.Parameters.Any(p => p.ParameterName == input.OutputName)) {
+                    if (cmd.Parameters.Count > 0 &&  cmd.Parameters.Cast<IDbDataParameter>().Any(p => p.ParameterName == input.OutputName)) {
                         var reader = await cmd.ExecuteReaderAsync();
-                        return cmd.Parameters.First(p => p.ParameterName == input.OutputName).Value; //return whatever we receive.
+                        return cmd.Parameters.Cast<IDbDataParameter>()?.First(p => p.ParameterName == input.OutputName)?.Value; //return whatever we receive.
                     }
 
                     status = await cmd.ExecuteNonQueryAsync();
