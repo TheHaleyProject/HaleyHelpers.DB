@@ -14,7 +14,6 @@ namespace Haley.Models {
 
     internal abstract class SqlHandlerBase<C> : ISqlHandler<C> where C : IDbCommand {
         public SqlHandlerBase() { }
-
         protected abstract IDisposable GetConnection(string conStr);
         protected abstract IDbCommand GetCommand(object connection);
         protected abstract IDbDataParameter GetParameter();
@@ -69,7 +68,7 @@ namespace Haley.Models {
             }
         }
 
-        public async Task<object> ExecuteNonQuery(IDBInput input, params (string key, object value)[] parameters) {
+        public async Task<object> NonQuery(IDBInput input, params (string key, object value)[] parameters) {
 
             try {
                 var result = await ExecuteInternal(input, async (dbc) => {
@@ -101,7 +100,7 @@ namespace Haley.Models {
             }
         }
 
-        public async Task<DataSet> ExecuteReader(IDBInput input, params (string key, object value)[] parameters) {
+        public async Task<object> Read(IDBInput input, params (string key, object value)[] parameters) {
             var result = await ExecuteInternal(input, async (dbc) => {
                 if (!(dbc is DbCommand cmd)) return null;
                 if (input.Prepare) {
@@ -127,13 +126,13 @@ namespace Haley.Models {
                     count++;
                 }
                 await reader.CloseAsync();
-                return ds;
+                return ds; //Only return dataset
             }, parameters);
 
             return result as DataSet;
         }
 
-        public async Task<object> ExecuteScalar(IDBInput input, params (string key, object value)[] parameters) {
+        public async Task<object> Scalar(IDBInput input, params (string key, object value)[] parameters) {
             return await ExecuteInternal(input, async (dbc) => {
                 if (!(dbc is DbCommand cmd)) return null;
                 if (input.Prepare) {

@@ -7,6 +7,7 @@ namespace Haley.Models
 {
     //Each connecton util is expected to contain one connection string within it.
     public class DBAdapterEx : DBAdapter, IDBAdapterEx {
+       
         public void Dispose() {
             throw new NotImplementedException();
         }

@@ -29,19 +29,19 @@ namespace Haley.Models
             }
         }
 
-        public async Task<object> ExecuteScalar(IDBInput input, params (string key, object value)[] parameters) {
+        public async Task<object> Scalar(IDBInput input, params (string key, object value)[] parameters) {
             input.Conn = Info.ConnectionString;
-            return await Handler.ExecuteScalar(input, parameters);
+            return await Handler.Scalar(input, parameters);
         }
 
-        public async Task<DataSet> ExecuteReader(IDBInput input, params (string key, object value)[] parameters) {
+        public async Task<object> Read(IDBInput input, params (string key, object value)[] parameters) {
             input.Conn = Info.ConnectionString;
-            return await GetHanlder(Info.DBType).ExecuteReader(input, parameters);
+            return await Handler.Read(input, parameters);
         }
 
-        public async Task<object> ExecuteNonQuery(IDBInput input, params (string key, object value)[] parameters) {
+        public async Task<object> NonQuery(IDBInput input, params (string key, object value)[] parameters) {
             input.Conn = Info.ConnectionString;
-            return await GetHanlder(Info.DBType).ExecuteNonQuery(input, parameters);
+            return await Handler.NonQuery(input, parameters);
         }
 
         public void UpdateDBEntry(IDBAdapterInfo newentry) {

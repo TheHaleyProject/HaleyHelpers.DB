@@ -248,7 +248,7 @@ namespace Haley.Utils {
             return await ExecuteInternal(input, parameters);
         }
 
-        public async Task<object> ReadScalar(IDBInput input, params (string key, object value)[] parameters) {
+        public async Task<object> Scalar(IDBInput input, params (string key, object value)[] parameters) {
             if (input is DBSInput inputEx) {
                 inputEx.ReturnsResult = true;
                 inputEx.IsScalar = true;
@@ -283,12 +283,12 @@ namespace Haley.Utils {
                 object result = null;
                 if (input is DBSInput inputEx && inputEx.ReturnsResult) {
                     if (inputEx.IsScalar) {
-                        result = (await this[input.DBAKey]?.ExecuteScalar(input, parameters));
+                        result = (await this[input.DBAKey]?.Scalar(input, parameters));
                     } else {
-                        result = (await this[input.DBAKey]?.ExecuteReader(input, parameters))?.Select(true)?.Convert()?.ToList();
+                        result = ((DataSet)await this[input.DBAKey]?.Read(input, parameters))?.Select(true)?.Convert()?.ToList();
                     }
                 } else {
-                    result = await this[input.DBAKey]?.ExecuteNonQuery(input, parameters);
+                    result = await this[input.DBAKey]?.NonQuery(input, parameters);
                 }
                 return await GetFirst(result,input.Filter);
             } catch (Exception ex) {
