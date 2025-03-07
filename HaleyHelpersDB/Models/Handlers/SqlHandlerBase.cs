@@ -13,20 +13,12 @@ namespace Haley.Models {
 
     internal abstract class SqlHandlerBase<C> : ISqlHandler<C> where C : IDbCommand {
         public SqlHandlerBase() { }
+
         protected virtual DbConnection GetConnection(string conStr) {
-            if (typeof(C) == typeof(MySqlCommand)) return new MySqlConnection() { ConnectionString = conStr};
-            if (typeof(C) == typeof(SqliteCommand)) return new SqliteConnection() { ConnectionString = conStr };
-            if (typeof(C) == typeof(SqlCommand)) return new SqlConnection() { ConnectionString = conStr };
             return null;
         }
 
-        protected virtual IDbDataParameter GetParameter() {
-            if (typeof(C) == typeof(MySqlCommand)) return new MySqlParameter();
-            if (typeof(C) == typeof(SqliteCommand)) return new SqliteParameter();
-            if (typeof(C) == typeof(SqlCommand)) return new SqlParameter();
-            if (typeof(C) == typeof(NpgsqlCommand)) return new NpgsqlParameter();
-            return null;
-        }
+        protected abstract IDbDataParameter GetParameter();
 
         protected virtual void FillParameters(IDbCommand cmd, IDBInput input, params (string key, object value)[] parameters) {
             //ADD PARAMETERS IF REQUIRED
