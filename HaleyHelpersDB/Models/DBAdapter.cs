@@ -1,5 +1,6 @@
 ﻿using Haley.Abstractions;
 using Haley.Enums;
+using System.Collections.Concurrent;
 using System.Data;
 
 namespace Haley.Models
@@ -7,54 +8,50 @@ namespace Haley.Models
     //Each connecton util is expected to contain one connection string within it.
     public class DBAdapter : IDBAdapter {
         public IDBAdapterInfo Entry { get; }  //Read only.
+        ConcurrentDictionary<TargetDB, ISqlHandler> _handlers = new ConcurrentDictionary<TargetDB, ISqlHandler>();
         #region Public Methods
+
+        ISqlHandler GetHanlder(TargetDB target) {
+            if (!_handlers.ContainsKey(target)) {
+                ISqlHandler handler = null;
+                switch (target) {
+                    case TargetDB.maria:
+                    case TargetDB.mysql:
+                    handler = new MysqlHandler();
+                    break;
+                    case TargetDB.mssql:
+                    handler = new MssqlHandler();
+                    break;
+                    case TargetDB.pgsql:
+                    handler = new PgsqlHandler();
+                    break;
+                    case TargetDB.sqlite:
+                    handler = new SqliteHandler();
+                    break;
+                    case TargetDB.unknown:
+                    default:
+                    throw new ArgumentException($@"Unable to find any matching SQL Handler for the given target : {target}");
+                }
+                _handlers.TryAdd(target,handler);
+            }
+            if (!_handlers.ContainsKey(target) || _handlers[target] ==null ) throw new ArgumentException($@"Unable to find any matching SQL Handler for the given target : {target}");
+            return _handlers[target];
+        }
 
         public async Task<object> ExecuteScalar(IDBInput input, params (string key, object value)[] parameters) {
             input.Conn = Entry.ConnectionString;
-            switch (Entry.DBType) {
-                case TargetDB.mssql: //Microsoft SQL
-                return await MssqlHandler.ExecuteScalar(input, parameters);
-                case TargetDB.pgsql: //Postgres
-                return await PgsqlHandler.ExecuteScalar(input, parameters);
-                case TargetDB.maria: //Mariadb
-                case TargetDB.mysql:
-                return await MysqlHandler.ExecuteScalar(input, parameters);
-                case TargetDB.sqlite:
-                return await SqliteHandler.ExecuteScalar(input, parameters);
-            }
+            return await GetHanlder(Entry.DBType).ExecuteScalar(input, parameters);
             throw new NotImplementedException("No handler found for the given DB Type");
         }
 
         public async Task<DataSet> ExecuteReader(IDBInput input, params (string key, object value)[] parameters) {
             input.Conn = Entry.ConnectionString;
-            switch (Entry.DBType) {
-                case TargetDB.mssql: //Microsoft SQL
-                return await MssqlHandler.ExecuteReader(input, parameters);
-                case TargetDB.pgsql: //Postgres
-                return await PgsqlHandler.ExecuteReader(input, parameters);
-                case TargetDB.maria: //Mariadb
-                case TargetDB.mysql:
-                return await MysqlHandler.ExecuteReader(input, parameters);
-                case TargetDB.sqlite:
-                return await SqliteHandler.ExecuteReader(input, parameters);
-            }
-            throw new NotImplementedException("No handler found for the given DB Type");
+            return await GetHanlder(Entry.DBType).ExecuteReader(input, parameters);
         }
 
         public async Task<object> ExecuteNonQuery(IDBInput input, params (string key, object value)[] parameters) {
             input.Conn = Entry.ConnectionString;
-            switch (Entry.DBType) {
-                case TargetDB.mssql: //Microsoft SQL
-                return await MssqlHandler.ExecuteNonQuery(input, parameters);
-                case TargetDB.pgsql: //Postgres
-                return await PgsqlHandler.ExecuteNonQuery(input, parameters);
-                case TargetDB.maria: //Mariadb
-                case TargetDB.mysql:
-                return await MysqlHandler.ExecuteNonQuery(input, parameters);
-                case TargetDB.sqlite: //Mariadb
-                return await SqliteHandler.ExecuteNonQuery(input, parameters);
-            }
-            throw new NotImplementedException("No handler found for the given DB Type");
+            return await GetHanlder(Entry.DBType).ExecuteNonQuery(input, parameters);
         }
 
         public void UpdateDBEntry(IDBAdapterInfo newentry) {
