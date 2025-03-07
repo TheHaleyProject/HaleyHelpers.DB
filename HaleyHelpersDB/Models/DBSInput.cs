@@ -10,6 +10,7 @@ namespace Haley.Models {
         public string Query { get; set; }
         public ILogger  Logger { get; set; }
         internal bool ReturnsResult { get; set; }
+        internal bool IsScalar { get; set; }
         public Func<string, object, bool> ParamHandler { get; set; }
         public string OutputName { get; set; }
         public bool Prepare { get; set; } = false;

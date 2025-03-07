@@ -133,8 +133,14 @@ namespace Haley.Models {
             return result as DataSet;
         }
 
-        public Task<object> ExecuteScalar(IDBInput input, params (string key, object value)[] parameters) {
-            throw new NotImplementedException();
+        public async Task<object> ExecuteScalar(IDBInput input, params (string key, object value)[] parameters) {
+            return await ExecuteInternal(input, async (dbc) => {
+                if (!(dbc is DbCommand cmd)) return null;
+                if (input.Prepare) {
+                    await cmd.PrepareAsync();
+                }
+                return await cmd.ExecuteScalarAsync();
+            }, parameters);
         }
     }
 }
