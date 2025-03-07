@@ -16,6 +16,18 @@ namespace Haley.Models {
         public string SchemaName { get; set; }
         public string Sha { get; set; }
 
+        public object Clone() {
+            return new DBAdapterInfo() {
+                AdapterKey = this.AdapterKey,
+                ConnectionKey = this.ConnectionKey,
+                ConnectionString = this.ConnectionString,
+                DBName = this.DBName,
+                DBType = this.DBType,
+                SchemaName = this.SchemaName,
+                Sha = this.Sha
+            };
+        }
+
         public IDBAdapterInfo Update(IDBAdapterInfo entry) {
             //It is intentional not to update the ConnetionKey and AdapterKey.
 

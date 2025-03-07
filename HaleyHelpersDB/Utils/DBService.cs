@@ -36,46 +36,14 @@ namespace Haley.Utils {
         IDBServiceUtil _util;
 
         ConcurrentDictionary<string, (string cstr, TargetDB dbtype)> connectionstrings = new ConcurrentDictionary<string, (string cstr, TargetDB dbtype)>();
-        public DBService() {
+        public DBService(bool autoConfigure = true) {
             //Id = Guid.NewGuid();
+            if (autoConfigure) Configure();
         }
 
         public Guid Id { get; } = Guid.NewGuid();
         public event DictionaryUpdatedEvent Updated;
         #region Global Methods
-
-        public static IConfigurationRoot GenerateConfigurationRoot(string[] jsonPaths = null, string basePath = null) {
-            var builder = new ConfigurationBuilder();
-            var jsonlist = jsonPaths?.ToList() ?? new List<string>();
-            if (basePath == null) basePath = AssemblyUtils.GetBaseDirectory(); ; //Hopefully both interface DLL and the main app dll are in same directory where the json files are present.
-            builder.SetBasePath(basePath); // let us load the file from a specific directory
-
-            if (jsonlist == null || jsonlist.Count < 1) {
-                jsonlist = new List<string>() {"appsettings", "connections" }; //add these two default jsons.
-            }
-
-            if (!jsonlist.Contains("appsettings")) jsonlist.Add("appsettings");
-            if (!jsonlist.Contains("connections")) jsonlist.Add("connections");
-
-            foreach (var path in jsonlist) {
-                if (path == null) continue;
-                string finalFilePath = path.Trim();
-                if (!finalFilePath.EndsWith(".json", StringComparison.OrdinalIgnoreCase) && finalFilePath != null) {
-                    finalFilePath += ".json";
-                }
-
-                //Assume it is an absolute path
-                if (!File.Exists(finalFilePath)) {
-                    //We assumed it was an abolute path and it doesn't exists.. What if it is a relative path?
-                    //Combine with base path and check if it exists.
-                    if (!File.Exists(Path.Combine(basePath, finalFilePath!))) continue;
-                }
-                //If we reach here then the file is present, regardless of whether it is absolute or relative.
-
-                builder.AddJsonFile(finalFilePath);
-            }
-            return builder.Build();
-        }
 
         public static string ReplaceParameter(string connectionstring, string key, string value) {
             if (string.IsNullOrWhiteSpace(connectionstring) || string.IsNullOrWhiteSpace(value)) return connectionstring;
@@ -151,12 +119,12 @@ namespace Haley.Utils {
 
         public bool IsShaValid(string adapterKey,string sha) {
             if (string.IsNullOrWhiteSpace(adapterKey) || string.IsNullOrWhiteSpace(sha) || !this.ContainsKey(adapterKey)) return false;
-            return this[adapterKey].Entry.Sha == sha;
+            return this[adapterKey].Info.Sha == sha;
         }
 
-        public string GetSchemaName(string dba_key) {
-            if (!this.ContainsKey(dba_key)) return null;
-            return this[dba_key].Entry.SchemaName;
+        public string GetSchemaName(string adapterKey) {
+            if (!this.ContainsKey(adapterKey)) return null;
+            return this[adapterKey].Info.SchemaName;
         }
 
         IDBService Configure(bool reload) {
@@ -249,7 +217,7 @@ namespace Haley.Utils {
         }
 
         public IDBService SetConfigurationRoot(string[] jsonPaths, string basePath = null) {
-            SetConfigurationRoot(GenerateConfigurationRoot(jsonPaths, basePath));
+            SetConfigurationRoot(ResourceUtils.GenerateConfigurationRoot(jsonPaths, basePath));
             return this;
         }
 
@@ -329,6 +297,12 @@ namespace Haley.Utils {
                 input.Logger?.LogError(ex.StackTrace);
                 return await GetFirst(new FeedbackError(ex.Message));
             }
+        }
+
+        public IDBAdapterEx CreateAdapter(string adapterKey) {
+            if (string.IsNullOrWhiteSpace(adapterKey) || !ContainsKey(adapterKey)) throw new ArgumentNullException($@"Adapter key not registered {adapterKey}");
+            var newInfo = this[adapterKey].Info.Clone() as IDBAdapterInfo; //All connection strings properly parsed.
+            return new DBAdapterEx(newInfo);
         }
         #endregion
     }

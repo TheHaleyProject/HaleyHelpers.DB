@@ -142,9 +142,9 @@ namespace Haley.Utils {
             return result;
         }
 
-        public DBServiceEx(ILogger logger) {
+        public DBServiceEx(ILogger logger, bool autoConfigure = true):base(autoConfigure) {
             _logger = logger;
         }
-        public DBServiceEx() : this(null) { }
+        public DBServiceEx() : this(null,true) { }
     }
 }
