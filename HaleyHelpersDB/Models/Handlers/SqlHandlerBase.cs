@@ -9,15 +9,18 @@ using MySqlConnector;
 using Microsoft.Data.Sqlite;
 using Microsoft.Data.SqlClient;
 using System.Collections;
+using System.Collections.Concurrent;
 
 namespace Haley.Models {
 
-    internal abstract class SqlHandlerBase<C> : ISqlHandler<C> where C : IDbCommand {
-        public SqlHandlerBase() { }
+    internal abstract class SqlHandlerBase : ISqlHandler {
+        public SqlHandlerBase(bool mode) { TransactionMode = mode; }
+        IDisposable _connection;
+        IDbTransaction _transaction;
+        public bool TransactionMode { get; }
         protected abstract IDisposable GetConnection(string conStr);
         protected abstract IDbCommand GetCommand(object connection);
         protected abstract IDbDataParameter GetParameter();
-
         protected virtual void FillParameters(IDbCommand cmd, IDBInput input, params (string key, object value)[] parameters) {
             //ADD PARAMETERS IF REQUIRED
             if (parameters.Length > 0) {
@@ -48,7 +51,6 @@ namespace Haley.Models {
                 }
             }
         }
-
         public virtual async Task<object> ExecuteInternal(IDBInput input, Func<IDbCommand, Task<object>> processor, params (string key, object value)[] parameters) {
             var conn = GetConnection(input.Conn);
             using (conn) {
@@ -140,6 +142,25 @@ namespace Haley.Models {
                 }
                 return await cmd.ExecuteScalarAsync();
             }, parameters);
+        }
+
+        public void Dispose() {
+            //Will not automatically dispose. Just a means to dispose resources manually without waiting for the garbage collector
+            throw new NotImplementedException();
+        }
+
+        public async Task<IDBTransaction> Start() {
+            //Create new connection. If a connetion already exists & the transaction 
+            //start the transaction
+            return this;
+        }
+
+        public Task Commit() {
+            throw new NotImplementedException();
+        }
+
+        public Task Rollback() {
+            throw new NotImplementedException();
         }
     }
 }

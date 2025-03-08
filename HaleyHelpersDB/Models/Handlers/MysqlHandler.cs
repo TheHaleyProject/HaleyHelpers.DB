@@ -8,7 +8,7 @@ using System.Data.Common;
 
 namespace Haley.Models {
 
-    internal class MysqlHandler : SqlHandlerBase<MySqlCommand> {
+    internal class MysqlHandler : SqlHandlerBase {
         protected override IDbCommand GetCommand(object connection) {
             if (connection is MySqlConnection sqlc) return sqlc.CreateCommand();
             return null;
@@ -21,5 +21,6 @@ namespace Haley.Models {
         protected override IDbDataParameter GetParameter() {
             return new MySqlParameter();
         }
+        public MysqlHandler(bool transactionMode) : base(transactionMode) { }
     }
 }

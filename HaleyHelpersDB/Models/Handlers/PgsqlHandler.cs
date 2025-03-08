@@ -8,7 +8,8 @@ using Microsoft.Data.SqlClient;
 
 namespace Haley.Models {
 
-    internal class PgsqlHandler : SqlHandlerBase<NpgsqlCommand> {
+    internal class PgsqlHandler : SqlHandlerBase {
+        public PgsqlHandler(bool transactionMode) : base(transactionMode) { }
         //NpgsqlDataSource.Create(input.Conn)
         protected override IDbCommand GetCommand(object connection) {
             if (connection is NpgsqlDataSource npgs) return npgs.CreateCommand();

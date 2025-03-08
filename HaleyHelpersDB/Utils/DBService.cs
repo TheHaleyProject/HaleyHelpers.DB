@@ -239,6 +239,11 @@ namespace Haley.Utils {
         #endregion Connection Utils Management
 
         #region Execution
+        public ITransactionHandler GetTransactionHandler(string adapterKey) {
+            if (string.IsNullOrWhiteSpace(adapterKey) || !ContainsKey(adapterKey)) throw new ArgumentNullException($@"Adapter key not registered {adapterKey}");
+            var newInfo = this[adapterKey].Info.Clone() as IDBAdapterInfo; //All connection strings properly parsed.
+            return new TransactionHandler(newInfo, true); //Create an adapter and also turn on the transaction mode, which means it can only make calls inside a transaction.
+        }
         public void SetServiceUtil(IDBServiceUtil util) {
             _util = util;
         }
@@ -297,12 +302,6 @@ namespace Haley.Utils {
                 input.Logger?.LogError(ex.StackTrace);
                 return await GetFirst(new FeedbackError(ex.Message));
             }
-        }
-
-        public IDBAdapterEx CreateAdapter(string adapterKey) {
-            if (string.IsNullOrWhiteSpace(adapterKey) || !ContainsKey(adapterKey)) throw new ArgumentNullException($@"Adapter key not registered {adapterKey}");
-            var newInfo = this[adapterKey].Info.Clone() as IDBAdapterInfo; //All connection strings properly parsed.
-            return new DBAdapterEx(newInfo);
         }
         #endregion
     }

@@ -6,7 +6,8 @@ using System.Data.Common;
 
 namespace Haley.Models {
 
-    internal class MssqlHandler : SqlHandlerBase<SqlCommand> {
+    internal class MssqlHandler : SqlHandlerBase {
+        public MssqlHandler(bool transactionMode) : base(transactionMode) { }
         protected override IDbCommand GetCommand(object connection) {
             if (connection is SqlConnection sqlc) return sqlc.CreateCommand();
             return null;

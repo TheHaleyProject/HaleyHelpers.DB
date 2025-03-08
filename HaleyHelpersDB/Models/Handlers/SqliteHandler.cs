@@ -7,7 +7,8 @@ using MySqlConnector;
 
 namespace Haley.Models {
 
-    internal class SqliteHandler : SqlHandlerBase<SqliteCommand> {
+    internal class SqliteHandler : SqlHandlerBase {
+        public SqliteHandler(bool transactionMode) : base(transactionMode) { }
         protected override IDbCommand GetCommand(object connection) {
             if (connection is SqliteConnection sqlc) return sqlc.CreateCommand();
             return null;
