@@ -29,12 +29,10 @@ namespace Haley.Utils {
                 _moduleKeys[typeof(P)] = adapterKey;
             }
         }
-
         public Task<IFeedback> TryRegisterModule<M>()
          where M : class, IDBModule, new() {
             return TryRegisterModule<M>(null);
         }
-
         public Task<IFeedback> TryRegisterModule<M>(Dictionary<string, object> seed)
          where M : class, IDBModule,new() {
             return TryRegisterModule<M>(null, seed);
@@ -47,7 +45,6 @@ namespace Haley.Utils {
         {
             return TryRegisterModuleInternal(typeof(M),module ,seed);
         }
-
         async Task<IFeedback> TryRegisterModuleInternal(Type mType, IDBModule module, Dictionary<string,object> seed) {
             IFeedback result = new Feedback(false);
             try {
@@ -88,7 +85,6 @@ namespace Haley.Utils {
                 return new Feedback(false, $@"Exception: {ex.Message}");
             }
         }
-
         public Task<IFeedback> Execute<P>(Enum cmd, P arg) where P : IModuleParameter {
             var argT = typeof(P);
             if (!_dic.ContainsKey(argT)) throw new KeyNotFoundException($@"{argT}");
@@ -103,13 +99,11 @@ namespace Haley.Utils {
             }
             return _dic[argT].Execute(cmd,arg);
         }
-
         public IFeedback GetCommandStatus<P>(Enum cmd) where P : IModuleParameter {
             var argT = typeof(P);
             if (!_dic.ContainsKey(argT)) return new Feedback(false, $@"{argT} is not registered to any module");
             return _dic[argT].GetInvocationMethodName(cmd);
         }
-
         public async Task<IFeedback> TryRegisterAssembly(Assembly assembly) {
             List<IFeedback> results = new List<IFeedback>();
             if (assembly == null) return new Feedback(false, "Assembly is null");
@@ -141,7 +135,6 @@ namespace Haley.Utils {
             result.Result = results;
             return result;
         }
-
         public DBServiceEx(ILogger logger, bool autoConfigure = true):base(autoConfigure) {
             _logger = logger;
         }

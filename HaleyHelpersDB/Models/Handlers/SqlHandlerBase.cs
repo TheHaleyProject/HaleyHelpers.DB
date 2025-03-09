@@ -146,21 +146,20 @@ namespace Haley.Models {
 
         public void Dispose() {
             //Will not automatically dispose. Just a means to dispose resources manually without waiting for the garbage collector
-            throw new NotImplementedException();
         }
 
-        public async Task<IDBTransaction> Start() {
+        public async Task<IDBTransaction> Begin() {
             //Create new connection. If a connetion already exists & the transaction 
             //start the transaction
             return this;
         }
 
         public Task Commit() {
-            throw new NotImplementedException();
+            return Task.CompletedTask;
         }
 
         public Task Rollback() {
-            throw new NotImplementedException();
+            return Task.CompletedTask;
         }
     }
 }
