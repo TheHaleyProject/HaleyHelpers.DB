@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Reflection;
 
 namespace Haley.Utils {
-    public class DBServiceEx : DBService, IDBServiceEx {
+    public class DBModuleService : DBService, IDBModuleService {
         ILogger _logger;
         ConcurrentDictionary<Type, IDBModule> _dic = new ConcurrentDictionary<Type, IDBModule>();
 
@@ -135,9 +135,12 @@ namespace Haley.Utils {
             result.Result = results;
             return result;
         }
-        public DBServiceEx(ILogger logger, bool autoConfigure = true):base(autoConfigure) {
+        protected override IDBModuleService GetDBM() {
+            return this;
+        }
+        public DBModuleService(ILogger logger, bool autoConfigure = true):base(autoConfigure) {
             _logger = logger;
         }
-        public DBServiceEx() : this(null,true) { }
+        public DBModuleService() : this(null,true) { }
     }
 }

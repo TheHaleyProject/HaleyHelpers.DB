@@ -239,10 +239,12 @@ namespace Haley.Utils {
         #endregion Connection Utils Management
 
         #region Execution
+
+        protected virtual IDBModuleService GetDBM() { return null; }
         public ITransactionHandler GetTransactionHandler(string adapterKey) {
             if (string.IsNullOrWhiteSpace(adapterKey) || !ContainsKey(adapterKey)) throw new ArgumentNullException($@"Adapter key not registered {adapterKey}");
             var newInfo = this[adapterKey].Info.Clone() as IDBAdapterInfo; //All connection strings properly parsed.
-            return new TransactionHandler(newInfo, true); //Create an adapter and also turn on the transaction mode, which means it can only make calls inside a transaction.
+            return new TransactionHandler(newInfo, true) {Dbm = GetDBM() }; //Create an adapter and also turn on the transaction mode, which means it can only make calls inside a transaction.
         }
         public void SetServiceUtil(IDBServiceUtil util) {
             _util = util;
