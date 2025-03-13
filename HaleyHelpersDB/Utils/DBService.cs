@@ -250,6 +250,18 @@ namespace Haley.Utils {
             _util = util;
         }
 
+        public Task<object> Read(string adapterkey, string query, params (string key, object value)[] parameters) {
+            return Read(new DBSInput(adapterkey) { Query = query }, parameters);
+        }
+
+        public Task<object> Scalar(string adapterkey, string query, params (string key, object value)[] parameters) {
+            return Scalar(new DBSInput(adapterkey) { Query = query }, parameters);
+        }
+
+        public Task<object> NonQuery(string adapterkey, string query, params (string key, object value)[] parameters) {
+            return NonQuery(new DBSInput(adapterkey) { Query = query }, parameters);
+        }
+
         public async Task<object> Read(IDBInput input,  params (string key, object value)[] parameters) {
             if (input is DBSInput inputEx) inputEx.ReturnsResult = true;
             return await ExecuteInternal(input, parameters);

@@ -19,12 +19,12 @@ namespace Haley.Models
         }
 
         public Task<IFeedback> Execute<P>(Enum cmd, P arg) where P : IModuleParameter {
-            if (Dbm == null) throw new ArgumentNullException($@"DBModule service is not defined inside the Transaction Handler.");
-
+            if (Dbm == null) throw new ArgumentNullException($@"DBModule service is not defined inside the Transaction Handler for executing this operation.");
+            //Now, all we need to do 
         }
 
         public IFeedback GetCommandStatus<P>(Enum cmd) where P : IModuleParameter {
-            if (Dbm == null) throw new ArgumentNullException($@"DBModule service is not defined inside the Transaction Handler.");
+            if (Dbm == null) throw new ArgumentNullException($@"DBModule service is not defined inside the Transaction Handler for executing this operation.");
         }
 
         public TransactionHandler(IDBAdapterInfo entry, bool transactionMode): base(entry,transactionMode) {
