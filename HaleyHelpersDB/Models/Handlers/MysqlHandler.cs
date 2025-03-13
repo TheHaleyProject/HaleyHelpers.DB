@@ -14,13 +14,14 @@ namespace Haley.Models {
             return null;
         }
 
-        protected override IDisposable GetConnection(string conStr) {
+        protected override object GetConnection(string conStr) {
+            if (_transaction != null) return _connection; //use the same connection 
             return new MySqlConnection(conStr);
         }
 
         protected override IDbDataParameter GetParameter() {
             return new MySqlParameter();
         }
-        public MysqlHandler(bool transactionMode) : base(transactionMode) { }
+        public MysqlHandler(string constring) : base(constring) { }
     }
 }

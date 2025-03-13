@@ -20,7 +20,7 @@ namespace Haley.Utils {
             _defaultAdapterKey = adapterKey;
         }
         public void SetDefaultAdapterKey<P>(string adapterKey) 
-            where P : IModuleParameter {
+            where P : IParameterBase {
             if (string.IsNullOrWhiteSpace(adapterKey)) throw new ArgumentNullException(nameof(adapterKey));
             //Set default adapter key for the specific module, if not provided along with the parameter.
             if (!_moduleKeys.ContainsKey(typeof(P))) {
@@ -57,9 +57,9 @@ namespace Haley.Utils {
 
                 if (module == null) module = (IDBModule)Activator.CreateInstance(mType);
                 Type paramType = dbmInterface.GetGenericArguments().Where(
-                    p => p.GetInterfaces().Any(q => q.Name == $@"{nameof(IModuleParameter)}")
+                    p => p.GetInterfaces().Any(q => q.Name == $@"{nameof(IParameterBase)}")
                     ).FirstOrDefault() ?? module.ParameterType;
-                if (paramType == null) return new Feedback(false, $@"The type argument of {nameof(IDBModule)} should implement {nameof(IModuleParameter)}");
+                if (paramType == null) return new Feedback(false, $@"The type argument of {nameof(IDBModule)} should implement {nameof(IParameterBase)}");
                 ////var cmdType = paramType.GetInterfaces()?.FirstOrDefault(p => p.IsGenericType && p.Name == $@"{nameof(IModuleParameter)}`1");
                 ////if (cmdType == null) return (false, $@"The type argument of {nameof(IDBModule)} should implement {nameof(IModuleParameter)} ");//Even after above step if we dont' get the parameter type, don't register it.
                 if (_dic.ContainsKey(paramType)) return new Feedback(false, $@"{paramType} is already registered.");
@@ -85,24 +85,33 @@ namespace Haley.Utils {
                 return new Feedback(false, $@"Exception: {ex.Message}");
             }
         }
-        public Task<IFeedback> Execute<P>(Enum cmd, P arg) where P : IModuleParameter {
+        public IDBModule GetModule<P>() where P : IParameterBase {
             var argT = typeof(P);
-            if (!_dic.ContainsKey(argT)) throw new KeyNotFoundException($@"{argT}");
-            if (string.IsNullOrWhiteSpace(arg.AdapterKey)) {
-                if (_moduleKeys.ContainsKey(typeof(P))) {
-                    arg.AdapterKey = _moduleKeys[typeof(P)];
+            if (!_dic.ContainsKey(argT)) return null;
+            return _dic[argT];
+        }
+
+        public string GetModuleKey<P>() where P : IParameterBase {
+            var argT = typeof(P);
+            if (!_moduleKeys.ContainsKey(argT)) return null;
+            return _moduleKeys[argT];
+        }
+
+        public Task<IFeedback> Execute<P>(Enum cmd, P arg) where P : IParameterBase {
+            var argT = typeof(P);
+            if (string.IsNullOrWhiteSpace(arg.Key)) {
+                if (_moduleKeys.ContainsKey(argT)) {
+                    arg.Key = _moduleKeys[argT];
                 } else if (!string.IsNullOrWhiteSpace(_defaultAdapterKey)) {
-                    arg.AdapterKey = _defaultAdapterKey;
+                    arg.Key = _defaultAdapterKey;
                 } else {
                     throw new ArgumentNullException("Cannot execute without a default adapter key.");
                 }
             }
-            return _dic[argT].Execute(cmd,arg);
+            return GetModule<P>()?.Execute(cmd, arg) ?? Task.FromResult((IFeedback)new Feedback(false)); 
         }
-        public IFeedback GetCommandStatus<P>(Enum cmd) where P : IModuleParameter {
-            var argT = typeof(P);
-            if (!_dic.ContainsKey(argT)) return new Feedback(false, $@"{argT} is not registered to any module");
-            return _dic[argT].GetInvocationMethodName(cmd);
+        public IFeedback GetCommandStatus<P>(Enum cmd) where P : IParameterBase {
+            return GetModule<P>()?.GetInvocationMethodName(cmd) ?? (IFeedback)new Feedback(false);
         }
         public async Task<IFeedback> TryRegisterAssembly(Assembly assembly) {
             List<IFeedback> results = new List<IFeedback>();
@@ -135,7 +144,7 @@ namespace Haley.Utils {
             result.Result = results;
             return result;
         }
-        protected override IDBModuleService GetDBM() {
+        protected override IDBService GetDBService() {
             return this;
         }
         public DBModuleService(ILogger logger, bool autoConfigure = true):base(autoConfigure) {

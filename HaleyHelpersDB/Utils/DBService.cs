@@ -240,43 +240,43 @@ namespace Haley.Utils {
 
         #region Execution
 
-        protected virtual IDBModuleService GetDBM() { return null; }
+        protected virtual IDBService GetDBService() { return this; }
         public ITransactionHandler GetTransactionHandler(string adapterKey) {
             if (string.IsNullOrWhiteSpace(adapterKey) || !ContainsKey(adapterKey)) throw new ArgumentNullException($@"Adapter key not registered {adapterKey}");
             var newInfo = this[adapterKey].Info.Clone() as IDBAdapterInfo; //All connection strings properly parsed.
-            return new TransactionHandler(newInfo, true) {Dbm = GetDBM() }; //Create an adapter and also turn on the transaction mode, which means it can only make calls inside a transaction.
+            return new TransactionHandler(newInfo) {_dbs = GetDBService() }; //Create an adapter and also turn on the transaction mode, which means it can only make calls inside a transaction.
         }
         public void SetServiceUtil(IDBServiceUtil util) {
             _util = util;
         }
 
-        public Task<object> Read(string adapterkey, string query, params (string key, object value)[] parameters) {
-            return Read(new DBSInput(adapterkey) { Query = query }, parameters);
+        public Task<object> Read(IParameterBase input, string query, params (string key, object value)[] parameters) {
+            return Read(input.Convert(query), parameters);
         }
 
-        public Task<object> Scalar(string adapterkey, string query, params (string key, object value)[] parameters) {
-            return Scalar(new DBSInput(adapterkey) { Query = query }, parameters);
+        public Task<object> Scalar(IParameterBase input, string query, params (string key, object value)[] parameters) {
+            return Scalar(input.Convert(query), parameters);
         }
 
-        public Task<object> NonQuery(string adapterkey, string query, params (string key, object value)[] parameters) {
-            return NonQuery(new DBSInput(adapterkey) { Query = query }, parameters);
+        public Task<object> NonQuery(IParameterBase input, string query, params (string key, object value)[] parameters) {
+            return NonQuery(input.Convert(query), parameters);
         }
 
-        public async Task<object> Read(IDBInput input,  params (string key, object value)[] parameters) {
-            if (input is DBSInput inputEx) inputEx.ReturnsResult = true;
+        public async Task<object> Read(IAdapterParameter input,  params (string key, object value)[] parameters) {
+            if (input is AdapterParameter inputEx) inputEx.ReturnsResult = true;
             return await ExecuteInternal(input, parameters);
         }
 
-        public async Task<object> Scalar(IDBInput input, params (string key, object value)[] parameters) {
-            if (input is DBSInput inputEx) {
+        public async Task<object> Scalar(IAdapterParameter input, params (string key, object value)[] parameters) {
+            if (input is AdapterParameter inputEx) {
                 inputEx.ReturnsResult = true;
                 inputEx.IsScalar = true;
             }
             return await ExecuteInternal(input, parameters);
         }
 
-        public async Task<object> NonQuery(IDBInput input, params (string key, object value)[] parameters) {
-            if (input is DBSInput inputEx) inputEx.ReturnsResult = false;
+        public async Task<object> NonQuery(IAdapterParameter input, params (string key, object value)[] parameters) {
+            if (input is AdapterParameter inputEx) inputEx.ReturnsResult = false;
             return await ExecuteInternal(input, parameters);
         }
 
@@ -295,19 +295,24 @@ namespace Haley.Utils {
         //    return result.ToArray();
         //}
 
-        async Task<object> ExecuteInternal(IDBInput input, params (string key, object value)[] parameters) {
-            if (string.IsNullOrWhiteSpace(input.DBAKey)) throw new ArgumentException("input.DBAKey cannot be empty");
-            if (!ContainsKey(input.DBAKey)) throw new ArgumentNullException($@"DBAKey missing: {input.DBAKey} is not found in the dictionary");
+        IDBAdapter GetAdapter(IAdapterParameter input) {
+            if (input is AdapterParameter adp && adp.Adapter != null) return adp.Adapter;
+            if (string.IsNullOrWhiteSpace(input.Key)) throw new ArgumentException("Adapter key cannot be empty");
+            if (!ContainsKey(input.Key)) throw new ArgumentNullException($@"DBAKey missing: {input.Key} is not found in the dictionary");
+            return this[input.Key];
+        }
+
+        async Task<object> ExecuteInternal(IAdapterParameter input, params (string key, object value)[] parameters) {
             try {
                 object result = null;
-                if (input is DBSInput inputEx && inputEx.ReturnsResult) {
+                if (input is AdapterParameter inputEx && inputEx.ReturnsResult) {
                     if (inputEx.IsScalar) {
-                        result = (await this[input.DBAKey]?.Scalar(input, parameters));
+                        result = (await GetAdapter(input).Scalar(input, parameters));
                     } else {
-                        result = ((DataSet)await this[input.DBAKey]?.Read(input, parameters))?.Select(true)?.Convert()?.ToList();
+                        result = ((DataSet)await GetAdapter(input).Read(input, parameters))?.Select(true)?.Convert()?.ToList();
                     }
                 } else {
-                    result = await this[input.DBAKey]?.NonQuery(input, parameters);
+                    result = await GetAdapter(input).NonQuery(input, parameters);
                 }
                 return await GetFirst(result,input.Filter);
             } catch (Exception ex) {

@@ -8,13 +8,14 @@ using MySqlConnector;
 namespace Haley.Models {
 
     internal class SqliteHandler : SqlHandlerBase {
-        public SqliteHandler(bool transactionMode) : base(transactionMode) { }
+        public SqliteHandler(string constring) : base(constring) { }
         protected override IDbCommand GetCommand(object connection) {
             if (connection is SqliteConnection sqlc) return sqlc.CreateCommand();
             return null;
         }
 
-        protected override IDisposable GetConnection(string conStr) {
+        protected override object GetConnection(string conStr) {
+            if (_transaction != null) return _connection; //use the same connection 
             return new SqliteConnection(conStr);
         }
 

@@ -7,27 +7,47 @@ namespace Haley.Models
 {
     //Each connecton util is expected to contain one connection string within it.
     public sealed class TransactionHandler : DBAdapter, ITransactionHandler {
+        IDBService _dbsVar;
+        internal IDBService _dbs { 
+            get { return _dbsVar; }
+            set {
+                _dbsVar = value;
+                if(value != null && value.GetType().GetInterfaces().Any(p=> p == typeof(IDBModuleService))){
+                    //if dbs is also a db module service, 
+                    _dbms = (IDBModuleService)value;
+                }}
+        } 
 
-        internal IDBModuleService Dbm { get; set; }
+        IDBModuleService _dbms;
         //This is nothing but a proxy, which also allows DBAdapter calls.
-        public void Dispose() => Handler.Dispose();
-        public Task Commit() => Handler.Commit();
-        public Task Rollback() => Handler.Rollback();
+        public void Dispose() => SQLHandler.Dispose();
+        public Task Commit() => SQLHandler.Commit();
+        public Task Rollback() => SQLHandler.Rollback();
         public async Task<IDBTransaction> Begin() {
-             await Handler.Begin(); //Do not return this object.
+             await SQLHandler.Begin(); //Do not return this object.
             return this; //Send this as the transaction.
         }
 
-        public Task<IFeedback> Execute<P>(Enum cmd, P arg) where P : IModuleParameter {
-            if (Dbm == null) throw new ArgumentNullException($@"DBModule service is not defined inside the Transaction Handler for executing this operation.");
-            //Now, all we need to do 
+        void ValidateDBService(bool validateModule = false) {
+            if (_dbs == null) throw new ArgumentNullException($@"DBService is not defined inside the Transaction Handler for executing this operation.");
+            if (validateModule && _dbms == null) throw new ArgumentException($@"DB Module Service is not defined inside the Transaction Handler for executing this operation.");
         }
 
-        public IFeedback GetCommandStatus<P>(Enum cmd) where P : IModuleParameter {
-            if (Dbm == null) throw new ArgumentNullException($@"DBModule service is not defined inside the Transaction Handler for executing this operation.");
+        public Task<IFeedback> Execute<P>(Enum cmd, P arg) where P : IParameterBase {
+            ValidateDBService();
+            //Now, we need to attach the adapter to the argument.
+            if (arg != null && arg is ModuleParameter argMP) argMP.Adapter = this;
+            //if required, we can also fetch the key and set here itself.
+            arg.Key = _dbms.GetModuleKey<P>();
+            return _dbms.GetModule<P>().Execute(cmd, arg);
         }
 
-        public TransactionHandler(IDBAdapterInfo entry, bool transactionMode): base(entry,transactionMode) {
+        public IFeedback GetCommandStatus<P>(Enum cmd) where P : IParameterBase {
+            ValidateDBService();
+            return _dbms.GetCommandStatus<P>(cmd);
+        }
+
+        public TransactionHandler(IDBAdapterInfo entry): base(entry) {
         }
     }
 }

@@ -14,14 +14,15 @@ using System.Collections.Concurrent;
 namespace Haley.Models {
 
     internal abstract class SqlHandlerBase : ISqlHandler {
-        public SqlHandlerBase(bool mode) { TransactionMode = mode; }
-        IDisposable _connection;
-        IDbTransaction _transaction;
+        protected string _conString;
+        public SqlHandlerBase(string constr) { _conString = constr; }
+        protected DbConnection _connection;
+        protected IDbTransaction _transaction; //If a transaction is available, then use it.. or else ignore it.
         public bool TransactionMode { get; }
-        protected abstract IDisposable GetConnection(string conStr);
+        protected abstract object GetConnection(string conStr);
         protected abstract IDbCommand GetCommand(object connection);
         protected abstract IDbDataParameter GetParameter();
-        protected virtual void FillParameters(IDbCommand cmd, IDBInput input, params (string key, object value)[] parameters) {
+        protected virtual void FillParameters(IDbCommand cmd, IAdapterParameter input, params (string key, object value)[] parameters) {
             //ADD PARAMETERS IF REQUIRED
             if (parameters.Length > 0) {
                 //IDbDataParameter[] msp = new IDbDataParameter[parameters.Length];
@@ -51,26 +52,25 @@ namespace Haley.Models {
                 }
             }
         }
-        public virtual async Task<object> ExecuteInternal(IDBInput input, Func<IDbCommand, Task<object>> processor, params (string key, object value)[] parameters) {
-            var conn = GetConnection(input.Conn);
-            using (conn) {
-                //INITIATE CONNECTION
-                input.Logger?.LogInformation($@"Opening connection - {input.Conn}");
-                //conn.Open();
-                if (conn is DbConnection) await ((DbConnection)conn).OpenAsync();
-                IDbCommand cmd = GetCommand(conn);
-                cmd.CommandText = input.Query;
-                input.Logger?.LogInformation("Creating query");
-                FillParameters(cmd, input, parameters);
-                input.Logger?.LogInformation("About to execute");
-                var result = await processor.Invoke(cmd);
-                if (conn is DbConnection) await ((DbConnection)conn).CloseAsync();
-                input.Logger?.LogInformation("Connection closed");
-                return result;
-            }
+        public virtual async Task<object> ExecuteInternal(IAdapterParameter input, Func<IDbCommand, Task<object>> processor, params (string key, object value)[] parameters) {
+            if (!(input is AdapterParameter)) throw new ArgumentException($@"Input is not derived from {nameof(AdapterParameter)}. Cannot obtain the connection string information.");
+            var conn = GetConnection(_conString);
+            //INITIATE CONNECTION
+            input.Logger?.LogInformation($@"Opening connection - {_conString}");
+            //conn.Open();
+            if (_transaction == null && conn is DbConnection) await ((DbConnection)conn).OpenAsync(); //For pgsql, we don't do this. It is done by NPGSQL source
+            IDbCommand cmd = GetCommand(conn);
+            cmd.CommandText = input.Query;
+            input.Logger?.LogInformation("Creating query");
+            FillParameters(cmd, input, parameters);
+            input.Logger?.LogInformation("About to execute");
+            var result = await processor.Invoke(cmd);
+            if (_transaction == null && conn is DbConnection) await ((DbConnection)conn).CloseAsync();
+            input.Logger?.LogInformation("Connection closed");
+            return result;
         }
 
-        public async Task<object> NonQuery(IDBInput input, params (string key, object value)[] parameters) {
+        public async Task<object> NonQuery(IAdapterParameter input, params (string key, object value)[] parameters) {
 
             try {
                 var result = await ExecuteInternal(input, async (dbc) => {
@@ -102,7 +102,7 @@ namespace Haley.Models {
             }
         }
 
-        public async Task<object> Read(IDBInput input, params (string key, object value)[] parameters) {
+        public async Task<object> Read(IAdapterParameter input, params (string key, object value)[] parameters) {
             var result = await ExecuteInternal(input, async (dbc) => {
                 if (!(dbc is DbCommand cmd)) return null;
                 if (input.Prepare) {
@@ -134,7 +134,7 @@ namespace Haley.Models {
             return result as DataSet;
         }
 
-        public async Task<object> Scalar(IDBInput input, params (string key, object value)[] parameters) {
+        public async Task<object> Scalar(IAdapterParameter input, params (string key, object value)[] parameters) {
             return await ExecuteInternal(input, async (dbc) => {
                 if (!(dbc is DbCommand cmd)) return null;
                 if (input.Prepare) {
@@ -146,20 +146,33 @@ namespace Haley.Models {
 
         public void Dispose() {
             //Will not automatically dispose. Just a means to dispose resources manually without waiting for the garbage collector
+            Task.WaitAny(Commit());
         }
 
         public async Task<IDBTransaction> Begin() {
-            //Create new connection. If a connetion already exists & the transaction 
-            //start the transaction
+            if (_transaction != null) throw new Exception("A transaction is already opened. Please commit/rollback the existing transaction.");
+            _connection = (DbConnection)GetConnection(_conString);
+            await _connection.OpenAsync();
+            //After we get the connection, we generate the transaction.
+            _transaction = await _connection.BeginTransactionAsync();
             return this;
         }
 
-        public Task Commit() {
-            return Task.CompletedTask;
+        public async Task Commit() {
+            _transaction?.Commit();
+            if (_connection != null) await _connection.CloseAsync();
+            ClearTransactionInfo();
         }
 
-        public Task Rollback() {
-            return Task.CompletedTask;
+        public void ClearTransactionInfo() {
+            _transaction = null;
+            _connection = null;
+        }
+
+        public async Task Rollback() {
+            _transaction?.Rollback();
+            if (_connection != null) await _connection.CloseAsync();
+            ClearTransactionInfo();
         }
     }
 }
