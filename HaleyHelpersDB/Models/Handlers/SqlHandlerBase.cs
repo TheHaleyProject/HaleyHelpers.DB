@@ -10,17 +10,23 @@ using Microsoft.Data.Sqlite;
 using Microsoft.Data.SqlClient;
 using System.Collections;
 using System.Collections.Concurrent;
+using System;
 
 namespace Haley.Models {
 
     internal abstract class SqlHandlerBase : ISqlHandler {
         protected string _conString;
+        string TupleTypeName = typeof(ValueTuple).FullName!;
         public SqlHandlerBase(string constr) { _conString = constr; }
         protected DbConnection _connection;
         protected IDbTransaction _transaction; //If a transaction is available, then use it.. or else ignore it.
         public bool TransactionMode { get; }
-        protected abstract object GetConnection(string conStr);
-        protected abstract IDbCommand GetCommand(object connection);
+        protected abstract void FillParameterInternal(IDbDataParameter msp, object pvalue);
+        protected abstract object GetConnection(string conStr, bool forTransaction = false);
+        protected virtual IDbCommand GetCommand(object connection) { 
+            if (connection is DbConnection dbc) return dbc.CreateCommand();
+            throw new ArgumentException($@"Unable to create command for the given connection type : {connection.GetType()}");
+        }
         protected abstract IDbDataParameter GetParameter();
         protected virtual void FillParameters(IDbCommand cmd, IAdapterParameter input, params (string key, object value)[] parameters) {
             //ADD PARAMETERS IF REQUIRED
@@ -35,7 +41,12 @@ namespace Haley.Models {
                         flag = input.ParamHandler.Invoke(key, msp);
                     }
                     if (flag) {
-                        msp.Value = parameters[i].value;
+                        var pvalue = parameters[i].value;
+                        if (pvalue.GetType().FullName!.StartsWith(TupleTypeName)) {
+                            FillParameterInternal(msp, pvalue);
+                        } else {
+                            msp.Value = parameters[i].value;
+                        }
                         //var pvalue = parameters[i].value;
                         //if (pvalue != null &&  pvalue.GetType() == typeof(string)) {
                         //    var pvalueStr = pvalue.ToString()!;
@@ -52,6 +63,7 @@ namespace Haley.Models {
                 }
             }
         }
+
         public virtual async Task<object> ExecuteInternal(IAdapterParameter input, Func<IDbCommand, Task<object>> processor, params (string key, object value)[] parameters) {
             if (!(input is AdapterParameter)) throw new ArgumentException($@"Input is not derived from {nameof(AdapterParameter)}. Cannot obtain the connection string information.");
             var conn = GetConnection(_conString);
@@ -151,7 +163,7 @@ namespace Haley.Models {
 
         public async Task<IDBTransaction> Begin() {
             if (_transaction != null) throw new Exception("A transaction is already opened. Please commit/rollback the existing transaction.");
-            _connection = (DbConnection)GetConnection(_conString);
+            _connection = (DbConnection)GetConnection(_conString,true);
             await _connection.OpenAsync();
             //After we get the connection, we generate the transaction.
             _transaction = await _connection.BeginTransactionAsync();
