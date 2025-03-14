@@ -20,8 +20,8 @@ namespace Haley.Models {
         protected string _conString;
         string TupleTypeName = typeof(ValueTuple).FullName!;
         public SqlHandlerBase(string constr) { _conString = constr; }
-        protected DbConnection _connection;
-        protected IDbTransaction _transaction; //If a transaction is available, then use it.. or else ignore it.
+        protected DbConnection? _connection;
+        protected IDbTransaction? _transaction; //If a transaction is available, then use it.. or else ignore it.
         protected virtual void FillParameterInternal(IDbDataParameter msp, object pvalue) {
             if (!pvalue.GetType().IsAssignableFrom(typeof(ITuple))) throw new ArgumentException("Method not implemented");
             var tup = (ITuple)pvalue;
