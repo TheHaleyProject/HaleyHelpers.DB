@@ -11,6 +11,8 @@ using Microsoft.Data.SqlClient;
 using System.Collections;
 using System.Collections.Concurrent;
 using System;
+using NpgsqlTypes;
+using System.Runtime.CompilerServices;
 
 namespace Haley.Models {
 
@@ -20,8 +22,12 @@ namespace Haley.Models {
         public SqlHandlerBase(string constr) { _conString = constr; }
         protected DbConnection _connection;
         protected IDbTransaction _transaction; //If a transaction is available, then use it.. or else ignore it.
-        public bool TransactionMode { get; }
-        protected abstract void FillParameterInternal(IDbDataParameter msp, object pvalue);
+        protected virtual void FillParameterInternal(IDbDataParameter msp, object pvalue) {
+            if (!pvalue.GetType().IsAssignableFrom(typeof(ITuple))) throw new ArgumentException("Method not implemented");
+            var tup = (ITuple)pvalue;
+            msp.Value = tup[0];
+            if (tup.Length > 1 && tup[1] is  DbType dbt) msp.DbType = dbt;
+        }
         protected abstract object GetConnection(string conStr, bool forTransaction = false);
         protected virtual IDbCommand GetCommand(object connection) { 
             if (connection is DbConnection dbc) return dbc.CreateCommand();

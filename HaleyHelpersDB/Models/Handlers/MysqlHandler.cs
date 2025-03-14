@@ -14,10 +14,6 @@ namespace Haley.Models {
             if (_transaction != null) return _connection; //use the same connection 
             return new MySqlConnection(conStr);
         }
-        protected override void FillParameterInternal(IDbDataParameter msp, object pvalue) {
-            throw new NotImplementedException();
-        }
-
         protected override IDbDataParameter GetParameter() {
             return new MySqlParameter();
         }
