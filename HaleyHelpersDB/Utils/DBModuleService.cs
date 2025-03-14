@@ -8,7 +8,7 @@ using System.Reflection;
 namespace Haley.Utils {
     public class DBModuleService : DBService, IDBModuleService {
         ILogger _logger;
-        ConcurrentDictionary<Type, IDBModule> _dic = new ConcurrentDictionary<Type, IDBModule>();
+        ConcurrentDictionary<Type, IDBModule> _modules = new ConcurrentDictionary<Type, IDBModule>();
 
         ConcurrentDictionary<Type, string> _moduleKeys = new ConcurrentDictionary<Type, string>();
 
@@ -62,7 +62,7 @@ namespace Haley.Utils {
                 if (paramType == null) return new Feedback(false, $@"The type argument of {nameof(IDBModule)} should implement {nameof(IParameterBase)}");
                 ////var cmdType = paramType.GetInterfaces()?.FirstOrDefault(p => p.IsGenericType && p.Name == $@"{nameof(IModuleParameter)}`1");
                 ////if (cmdType == null) return (false, $@"The type argument of {nameof(IDBModule)} should implement {nameof(IModuleParameter)} ");//Even after above step if we dont' get the parameter type, don't register it.
-                if (_dic.ContainsKey(paramType)) return new Feedback(false, $@"{paramType} is already registered.");
+                if (_modules.ContainsKey(paramType)) return new Feedback(false, $@"{paramType} is already registered.");
                 if (seed == null) seed = new Dictionary<string, object>();
                 if (!seed.ContainsKey("dbs") || seed["dbs"].GetType().IsAssignableFrom(typeof(IDBService))) {
                     seed.TryAdd("dbs", this);
@@ -78,7 +78,7 @@ namespace Haley.Utils {
                     var initializeStats = await dbMdl.Initialize(); //Default module initialization
                     if (!initializeStats.Status) return initializeStats;
                 }
-                var status = _dic.TryAdd(paramType, module);
+                var status = _modules.TryAdd(paramType, module);
                 return new Feedback(status, status ? "Success" : "Failed to register the module");
                 //todo: think of better ways to handle this registration.
             } catch (Exception ex) {
@@ -87,8 +87,8 @@ namespace Haley.Utils {
         }
         public IDBModule GetModule<P>() where P : IParameterBase {
             var argT = typeof(P);
-            if (!_dic.ContainsKey(argT)) return null;
-            return _dic[argT];
+            if (!_modules.ContainsKey(argT)) return null;
+            return _modules[argT];
         }
 
         public string GetModuleKey<P>() where P : IParameterBase {
