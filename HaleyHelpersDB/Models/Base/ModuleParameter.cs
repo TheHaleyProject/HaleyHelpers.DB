@@ -9,7 +9,6 @@ namespace Haley.Models
 {
     public abstract class ModuleParameter : ParameterBase{
         internal IDBAdapter Adapter { get; set; }
-        public ModuleParameter(): this (null) { }
         public ModuleParameter(string key):base(key) { }
     }
 }
