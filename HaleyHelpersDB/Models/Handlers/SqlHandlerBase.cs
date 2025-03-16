@@ -40,7 +40,8 @@ namespace Haley.Models {
             //priority 1 : parameters params
             //priority 2 : whatever inside the adapter
             //ASSUMPTION: parameters is not null inside the adapter parameter
-            Dictionary<string, object> cmdparams = (Dictionary<string,object>)input.GetParameters();
+            Dictionary<string, object> cmdparams = new Dictionary<string, object>(input.Parameters, StringComparer.InvariantCultureIgnoreCase);
+
             foreach (var param in parameters) {
                 if (!cmdparams.ContainsKey(param.key)) {
                     cmdparams.TryAdd(param.key, param.value);
