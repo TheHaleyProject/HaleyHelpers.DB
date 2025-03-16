@@ -2,5 +2,5 @@
 
 namespace Haley.Models
 {
-    public delegate Task<IFeedback> DBMExecuteDelegate(IParameterBase parameter);
+    public delegate Task<IFeedback> DBMExecuteDelegate(IDBModuleInput parameter);
 }

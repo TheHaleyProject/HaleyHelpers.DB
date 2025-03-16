@@ -7,8 +7,9 @@ using System.Threading.Tasks;
 
 namespace Haley.Models
 {
-    public abstract class ModuleParameter : ParameterBase{
+    public abstract class DBModuleInput : ParameterBase, IDBModuleInput{
         internal IDBAdapter Adapter { get; set; }
-        public ModuleParameter(string key):base(key) { }
+        public Enum Command { get; protected set; }
+        public DBModuleInput(Enum cmd,string key) : base(key) { Command = cmd; }
     }
 }

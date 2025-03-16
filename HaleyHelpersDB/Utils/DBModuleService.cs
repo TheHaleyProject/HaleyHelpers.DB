@@ -20,7 +20,7 @@ namespace Haley.Utils {
             _defaultAdapterKey = adapterKey;
         }
         public void SetDefaultAdapterKey<P>(string adapterKey) 
-            where P : IParameterBase {
+            where P : IDBModuleInput {
             if (string.IsNullOrWhiteSpace(adapterKey)) throw new ArgumentNullException(nameof(adapterKey));
             //Set default adapter key for the specific module, if not provided along with the parameter.
             if (!_moduleKeys.ContainsKey(typeof(P))) {
@@ -57,9 +57,9 @@ namespace Haley.Utils {
 
                 if (module == null) module = (IDBModule)Activator.CreateInstance(mType);
                 Type paramType = dbmInterface.GetGenericArguments().Where(
-                    p => p.GetInterfaces().Any(q => q.Name == $@"{nameof(IParameterBase)}")
+                    p => p.GetInterfaces().Any(q => q.Name == $@"{nameof(IDBModuleInput)}")
                     ).FirstOrDefault() ?? module.ParameterType;
-                if (paramType == null) return new Feedback(false, $@"The type argument of {nameof(IDBModule)} should implement {nameof(IParameterBase)}");
+                if (paramType == null) return new Feedback(false, $@"The type argument of {nameof(IDBModule)} should implement {nameof(IDBModuleInput)}");
                 ////var cmdType = paramType.GetInterfaces()?.FirstOrDefault(p => p.IsGenericType && p.Name == $@"{nameof(IModuleParameter)}`1");
                 ////if (cmdType == null) return (false, $@"The type argument of {nameof(IDBModule)} should implement {nameof(IModuleParameter)} ");//Even after above step if we dont' get the parameter type, don't register it.
                 if (_modules.ContainsKey(paramType)) return new Feedback(false, $@"{paramType} is already registered.");
@@ -85,32 +85,19 @@ namespace Haley.Utils {
                 return new Feedback(false, $@"Exception: {ex.Message}");
             }
         }
-        public IDBModule GetModule<P>() where P : IParameterBase {
+        public IDBModule GetModule<P>() where P : IDBModuleInput {
             var argT = typeof(P);
             if (!_modules.ContainsKey(argT)) return null;
             return _modules[argT];
         }
 
-        public string GetModuleKey<P>() where P : IParameterBase {
+        public string GetModuleKey<P>() where P : IDBModuleInput {
             var argT = typeof(P);
             if (!_moduleKeys.ContainsKey(argT)) return null;
             return _moduleKeys[argT];
         }
 
-        public Task<IFeedback> Execute<P>(Enum cmd, P arg) where P : IParameterBase {
-            var argT = typeof(P);
-            if (string.IsNullOrWhiteSpace(arg.Key)) {
-                if (_moduleKeys.ContainsKey(argT)) {
-                    arg.Key = _moduleKeys[argT];
-                } else if (!string.IsNullOrWhiteSpace(_defaultAdapterKey)) {
-                    arg.Key = _defaultAdapterKey;
-                } else {
-                    throw new ArgumentNullException("Cannot execute without a default adapter key.");
-                }
-            }
-            return GetModule<P>()?.Execute(cmd, arg) ?? Task.FromResult((IFeedback)new Feedback(false)); 
-        }
-        public IFeedback GetCommandStatus<P>(Enum cmd) where P : IParameterBase {
+        public IFeedback GetCommandStatus<P>(Enum cmd) where P : IDBModuleInput {
             return GetModule<P>()?.GetInvocationMethodName(cmd) ?? (IFeedback)new Feedback(false);
         }
         public async Task<IFeedback> TryRegisterAssembly(Assembly assembly) {
@@ -147,6 +134,21 @@ namespace Haley.Utils {
         protected override IDBService GetDBService() {
             return this;
         }
+
+        public Task<IFeedback> Execute<P>(P arg) where P : IDBModuleInput {
+            var argT = typeof(P);
+            if (string.IsNullOrWhiteSpace(arg.Key) && arg is ParameterBase pb) {
+                if (_moduleKeys.ContainsKey(argT)) {
+                    pb.Key = _moduleKeys[argT];
+                } else if (!string.IsNullOrWhiteSpace(_defaultAdapterKey)) {
+                    pb.Key = _defaultAdapterKey;
+                } else {
+                    throw new ArgumentNullException("Cannot execute without a default adapter key.");
+                }
+            }
+            return GetModule<P>()?.Execute(arg) ?? Task.FromResult((IFeedback)new Feedback(false));
+        }
+
         public DBModuleService(ILogger logger, bool autoConfigure = true):base(autoConfigure) {
             _logger = logger;
         }

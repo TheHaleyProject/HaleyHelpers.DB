@@ -25,7 +25,7 @@ namespace Haley.Models {
         protected virtual void FillParameterInternal(IDbDataParameter msp, object pvalue) {
             if (!pvalue.GetType().IsAssignableFrom(typeof(ITuple))) throw new ArgumentException("Method not implemented");
             var tup = (ITuple)pvalue;
-            msp.Value = tup[0];
+            msp.Value = tup[0] ?? DBNull.Value;
             if (tup.Length > 1 && tup[1] is  DbType dbt) msp.DbType = dbt;
         }
         protected abstract object GetConnection(string conStr, bool forTransaction = false);
@@ -35,23 +35,36 @@ namespace Haley.Models {
         }
         protected abstract IDbDataParameter GetParameter();
         protected virtual void FillParameters(IDbCommand cmd, IAdapterParameter input, params (string key, object value)[] parameters) {
+            //Here we know the query and also know the inputs. All we need to do it,just fetch the parameter sets in the query.
+            //tocheck: Would it create performance issue to check this? would it take more time to do this? is this duration negligible?
+            //priority 1 : parameters params
+            //priority 2 : whatever inside the adapter
+            //ASSUMPTION: parameters is not null inside the adapter parameter
+            Dictionary<string, object> cmdparams = (Dictionary<string,object>)input.GetParameters();
+            foreach (var param in parameters) {
+                if (!cmdparams.ContainsKey(param.key)) {
+                    cmdparams.TryAdd(param.key, param.value);
+                } else {
+                    cmdparams[param.key] = param.value;
+                }
+            }
+
             //ADD PARAMETERS IF REQUIRED
-            if (parameters.Length > 0) {
+            if (cmdparams.Count > 0) {
                 //IDbDataParameter[] msp = new IDbDataParameter[parameters.Length];
-                for (int i = 0; i < parameters.Length; i++) {
-                    var key = parameters[i].key;
+                foreach (var kvp in cmdparams) {
                     var msp = GetParameter();
-                    msp.ParameterName = key;
+                    msp.ParameterName = kvp.Key.ToUpper(); //All key should be in caps.
                     bool flag = true; //start with true
                     if (input.ParamHandler != null) {
-                        flag = input.ParamHandler.Invoke(key, msp);
+                        flag = input.ParamHandler.Invoke(kvp.Key, msp);
                     }
                     if (flag) {
-                        var pvalue = parameters[i].value;
+                        var pvalue = kvp.Value;
                         if (pvalue.GetType().FullName!.StartsWith(TupleTypeName)) {
                             FillParameterInternal(msp, pvalue);
                         } else {
-                            msp.Value = parameters[i].value;
+                            msp.Value = pvalue ?? DBNull.Value; //Lets set the value as dbnull
                         }
                         //var pvalue = parameters[i].value;
                         //if (pvalue != null &&  pvalue.GetType() == typeof(string)) {
@@ -64,7 +77,7 @@ namespace Haley.Models {
                         //    //   .Replace("\\u0027", "\\u0027\\u0027"); //If it is a string, replace the single quote.
                         //}
                     }
-                    if (!key.StartsWith("@")) { key = "@" + key; } //Check why this is required.
+                    if (!msp.ParameterName.StartsWith("@")) { msp.ParameterName = "@" + msp.ParameterName; } //Check why this is required.
                     cmd.Parameters.Add(msp);
                 }
             }

@@ -2,6 +2,7 @@
 using Haley.Enums;
 using System.Collections.Concurrent;
 using System.Data;
+using System.Reflection;
 
 namespace Haley.Models
 {
@@ -32,19 +33,28 @@ namespace Haley.Models
             if (_dbs == null) throw new ArgumentNullException($@"DBService is not defined inside the Transaction Handler for executing this operation.");
             if (validateModule && _dbms == null) throw new ArgumentException($@"DB Module Service is not defined inside the Transaction Handler for executing this operation.");
         }
-
-        public Task<IFeedback> Execute<P>(Enum cmd, P arg) where P : IParameterBase {
-            ValidateDBService();
-            //Now, we need to attach the adapter to the argument.
-            if (arg != null && arg is ModuleParameter argMP) argMP.Adapter = this;
-            //if required, we can also fetch the key and set here itself.
-            arg.Key = _dbms.GetModuleKey<P>();
-            return _dbms.GetModule<P>().Execute(cmd, arg);
-        }
-
-        public IFeedback GetCommandStatus<P>(Enum cmd) where P : IParameterBase {
+        public IFeedback GetCommandStatus<P>(Enum cmd) where P : IDBModuleInput {
             ValidateDBService();
             return _dbms.GetCommandStatus<P>(cmd);
+        }
+        public IDBModule GetModule<P>() where P : IDBModuleInput {
+            ValidateDBService();
+            return _dbms.GetModule<P>();
+        }
+        public string GetModuleKey<P>() where P : IDBModuleInput {
+            ValidateDBService();
+            return _dbms.GetModuleKey<P>();
+        }
+
+        public Task<IFeedback> Execute<P>(P arg) where P : IDBModuleInput {
+            ValidateDBService();
+            //Now, we need to attach the adapter to the argument.
+            if (arg != null && arg is DBModuleInput argMP) {
+                argMP.Adapter = this;
+                argMP.Key = _dbms.GetModuleKey<P>();
+            }
+            //if required, we can also fetch the key and set here itself.
+            return _dbms.GetModule<P>().Execute(arg);
         }
 
         public TransactionHandler(IDBAdapterInfo entry): base(entry) {

@@ -15,7 +15,8 @@ namespace Haley.Utils
         public static IAdapterParameter Convert(this IParameterBase input, string query) {
             if (input == null) throw new ArgumentNullException($@"Input cannot be null for conversion");
             var db = new AdapterParameter(input.Key) { Query = query};
-            if (input is ModuleParameter mdp) db.Adapter = mdp.Adapter; //set the target
+            db.SetParameters((Dictionary<string,object>)input.GetParameters()); //since parameter set is protected.
+            if (input is DBModuleInput mdp) db.Adapter = mdp.Adapter; //set the target
             return db;
         }
     }

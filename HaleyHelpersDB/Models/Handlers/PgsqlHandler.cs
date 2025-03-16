@@ -21,7 +21,7 @@ namespace Haley.Models {
         protected override void FillParameterInternal(IDbDataParameter msp, object pvalue) {
             if (msp is NpgsqlParameter npsp) {
                 var tup = (ITuple)pvalue;
-                msp.Value = tup[0];
+                msp.Value = tup[0] ?? DBNull.Value;
                 if (tup.Length > 1 && tup[1] is NpgsqlDbType dbt) npsp.NpgsqlDbType = dbt;
             } else {
                 throw new NotImplementedException();

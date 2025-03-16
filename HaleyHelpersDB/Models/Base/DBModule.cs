@@ -4,42 +4,39 @@ using System.Collections.Concurrent;
 using System.Reflection;
 
 namespace Haley.Models {
-    public abstract class DBModule<P> : DBModule, IDBModule<P> where P : IParameterBase {
+    public abstract class DBModule<DBArg> : DBModule, IDBModule<DBArg> where DBArg : IDBModuleInput {
         //protected ConcurrentDictionary<Enum,Func<P, Task<DBMResult>>> CmdDic = new ConcurrentDictionary<Enum, Func<P, Task<DBMResult>>>();
-        public override Task<IFeedback> Execute(Enum cmd) {
-            return Execute(cmd, default(P));
-        }
 
-        public override async Task<IFeedback> Execute(Enum cmd, IParameterBase parameter) {
-            if (parameter == null || cmd == null) return new Feedback(false, "Input parameter and the Command property of Input parameter cannot be null");
-            if (!CmdDic.ContainsKey(cmd)) return new Feedback(false, $@"Command {cmd} is not registered.");
-            if (!parameter.GetType().IsAssignableFrom(typeof(P))) return new Feedback(false,$@"Input parameter should be of type {typeof(P)}");
+        public override async Task<IFeedback> Execute<P>(P parameter) {
+            if (parameter == null || parameter.Command == null) return new Feedback(false, "Input parameter and the Command property of Input parameter cannot be null");
+            if (!CmdDic.ContainsKey(parameter.Command)) return new Feedback(false, $@"Command {parameter.Command} is not registered.");
+            if (!parameter.GetType().IsAssignableFrom(typeof(DBArg))) return new Feedback(false,$@"Input parameter should be of type {typeof(DBArg)}");
             //return await CmdDic[parameter.Command].DynamicInvoke((P)parameter);
-            var result = CmdDic[cmd].DynamicInvoke((P)parameter);
+            var result = CmdDic[parameter.Command].DynamicInvoke((P)parameter);
             if (result is Task<IFeedback> task) {
                 return await task;
             }
             return new Feedback(false, "Unable to invoke the delegate command");
         }
 
-        protected string PrepareQuery(string query,Dictionary<string,string> queryParams) {
-            string result = query;
-            if (string.IsNullOrWhiteSpace(result)) return result;
-            if (queryParams == null || queryParams.Count < 1) return result;
-            foreach (var item in queryParams) {
-                //Take the key and add $ as prefix/suffix and replace in the result
-                if (string.IsNullOrWhiteSpace(item.Key.Trim()) || string.IsNullOrWhiteSpace(item.Value.Trim())) continue;
-                var target = $@"${item.Key.Trim()}$";
-                result = result.Replace(target, item.Value.Trim());
-            }
-            return result;
-        }
+        //NEVER USE THE BELOW METHOD. ONLY USE PARAMETERIZED QUERY.
+        //protected string PrepareQuery(string query,Dictionary<string,string> queryParams) {
+        //    string result = query;
+        //    if (string.IsNullOrWhiteSpace(result)) return result;
+        //    if (queryParams == null || queryParams.Count < 1) return result;
+        //    foreach (var item in queryParams) {
+        //        //Take the key and add $ as prefix/suffix and replace in the result
+        //        if (string.IsNullOrWhiteSpace(item.Key.Trim()) || string.IsNullOrWhiteSpace(item.Value.Trim())) continue;
+        //        var target = $@"${item.Key.Trim()}$";
+        //        result = result.Replace(target, item.Value.Trim());
+        //    }
+        //    return result;
+        //}
     }
 
     public abstract class DBModule : IDBModule {
         protected ConcurrentDictionary<Enum, DBMExecuteDelegate> CmdDic = new ConcurrentDictionary<Enum, DBMExecuteDelegate>();
-        public abstract Task<IFeedback> Execute(Enum cmd);
-        public abstract Task<IFeedback> Execute(Enum cmd,IParameterBase parameter);
+        public abstract Task<IFeedback> Execute<P>(P parameter) where P:IDBModuleInput;
         public Type ParameterType { get; private set; }
         protected Dictionary<string, object> Seed { get; set; } //Either set by inheritance or by internal services
         internal void SetParameterType(Type ptype) => ParameterType = ptype;
@@ -78,7 +75,7 @@ namespace Haley.Models {
                     if (method.ReturnType != typeof(Task<IFeedback>)) throw new Exception($@"{method.DeclaringType?.Name} : {method.Name} --  Return type doesn't match {nameof(Task<IFeedback>)}");
 
                     var inParams = method.GetParameters();
-                    if (inParams == null || inParams[0] == null || !inParams[0].ParameterType.IsAssignableFrom(typeof(IParameterBase))) throw new Exception($@"{method.DeclaringType?.Name} : {method.Name} --  Signature doesn't match the type {nameof(IParameterBase)}");
+                    if (inParams == null || inParams[0] == null || !inParams[0].ParameterType.IsAssignableFrom(typeof(IDBModuleInput))) throw new Exception($@"{method.DeclaringType?.Name} : {method.Name} --  Signature doesn't match the type {nameof(IDBModuleInput)}");
 
                     //Instead of storing as MethodInfo, it is better to generate the delegate and call this, as the overhead and reflection time is less during runtime.
                     if (CmdDic.ContainsKey(@cmd)) throw new Exception($@"{@cmd} for method {method.DeclaringType?.Name}-{method.Name}. The command is already registered to method {CmdDic[@cmd].Method?.Name}");
