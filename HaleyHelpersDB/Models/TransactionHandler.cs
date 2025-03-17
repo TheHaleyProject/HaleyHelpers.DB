@@ -22,10 +22,11 @@ namespace Haley.Models
         IDBModuleService _dbms;
         //This is nothing but a proxy, which also allows DBAdapter calls.
         public void Dispose() => SQLHandler.Dispose();
-        public Task Commit() => SQLHandler.Commit();
-        public Task Rollback() => SQLHandler.Rollback();
-        public async Task<IDBTransaction> Begin() {
-             await SQLHandler.Begin(); //Do not return this object.
+        //public void Dispose() { }
+        public void Commit() => SQLHandler.Commit();
+        public void Rollback() => SQLHandler.Rollback();
+        public IDBTransaction Begin() {
+            SQLHandler.Begin(); //Do not return this object.
             return this; //Send this as the transaction.
         }
 
@@ -59,9 +60,6 @@ namespace Haley.Models
             //if required, we can also fetch the key and set here itself.
             return _dbms.GetModule<P>().Execute(arg);
         }
-
-       
-
         public TransactionHandler(IDBAdapterInfo entry): base(entry) {
         }
     }

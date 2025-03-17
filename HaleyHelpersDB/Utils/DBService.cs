@@ -42,6 +42,9 @@ namespace Haley.Utils {
         }
 
         public Guid Id { get; } = Guid.NewGuid();
+
+        public bool ThrowCRUDExceptions { get; set; }
+
         public event DictionaryUpdatedEvent Updated;
         #region Global Methods
 
@@ -319,6 +322,7 @@ namespace Haley.Utils {
                 input.Logger?.LogError($@"Error for: {input.Query}");
                 input.Logger?.LogError(ex.Message);
                 input.Logger?.LogError(ex.StackTrace);
+                if (ThrowCRUDExceptions) throw ex;
                 return await GetFirst(new FeedbackError(ex.Message));
             }
         }

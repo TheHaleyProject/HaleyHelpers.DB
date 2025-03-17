@@ -84,6 +84,8 @@ namespace Haley.Models {
             }
         }
 
+        public bool TransactionMode  { get; protected set; }
+
         public virtual async Task<object> ExecuteInternal(IAdapterParameter input, Func<IDbCommand, Task<object>> processor, params (string key, object value)[] parameters) {
             if (!(input is AdapterParameter)) throw new ArgumentException($@"Input is not derived from {nameof(AdapterParameter)}. Cannot obtain the connection string information.");
             var conn = GetConnection(_conString);
@@ -178,21 +180,21 @@ namespace Haley.Models {
 
         public void Dispose() {
             //Will not automatically dispose. Just a means to dispose resources manually without waiting for the garbage collector
-            Task.WaitAny(Commit());
+            Commit();
         }
 
-        public async Task<IDBTransaction> Begin() {
+        public IDBTransaction Begin() {
             if (_transaction != null) throw new Exception("A transaction is already opened. Please commit/rollback the existing transaction.");
             _connection = (DbConnection)GetConnection(_conString,true);
-            await _connection.OpenAsync();
+            Task.WaitAny(_connection.OpenAsync());
             //After we get the connection, we generate the transaction.
-            _transaction = await _connection.BeginTransactionAsync();
+            _transaction = _connection.BeginTransactionAsync().Result;
             return this;
         }
 
-        public async Task Commit() {
+        public void Commit() {
             _transaction?.Commit();
-            if (_connection != null) await _connection.CloseAsync();
+            if (_connection != null) Task.WaitAny(_connection.CloseAsync());
             ClearTransactionInfo();
         }
 
@@ -201,9 +203,9 @@ namespace Haley.Models {
             _connection = null;
         }
 
-        public async Task Rollback() {
+        public void Rollback() {
             _transaction?.Rollback();
-            if (_connection != null) await _connection.CloseAsync();
+            if (_connection != null) Task.WaitAny(_connection.CloseAsync());
             ClearTransactionInfo();
         }
     }

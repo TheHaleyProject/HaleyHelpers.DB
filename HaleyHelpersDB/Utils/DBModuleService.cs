@@ -65,8 +65,8 @@ namespace Haley.Utils {
                 ////if (cmdType == null) return (false, $@"The type argument of {nameof(IDBModule)} should implement {nameof(IModuleParameter)} ");//Even after above step if we dont' get the parameter type, don't register it.
                 if (_modules.ContainsKey(paramType)) return new Feedback(false, $@"{paramType} is already registered.");
                 if (seed == null) seed = new Dictionary<string, object>();
-                if (!seed.ContainsKey("dbs") || seed["dbs"].GetType().IsAssignableFrom(typeof(IDBService))) {
-                    seed.TryAdd("dbs", this);
+                if (!seed.ContainsKey("ms") || !seed["ms"].GetType().IsAssignableFrom(typeof(IDBModuleService))) {
+                    seed.TryAdd("ms", this);
                 }
                 if (!seed.ContainsKey("logger") || seed["logger"].GetType().IsAssignableFrom(typeof(ILogger))) {
                     seed.TryAdd("logger", _logger);
