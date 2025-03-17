@@ -45,7 +45,10 @@ namespace Haley.Models
             ValidateDBService();
             return _dbms.GetModuleKey<P>();
         }
-
+        public string GetAssemblyKey<P>() where P : Assembly {
+            ValidateDBService();
+            return _dbms.GetAssemblyKey<P>();
+        }
         public Task<IFeedback> Execute<P>(P arg) where P : IDBModuleInput {
             ValidateDBService();
             //Now, we need to attach the adapter to the argument.
@@ -56,6 +59,8 @@ namespace Haley.Models
             //if required, we can also fetch the key and set here itself.
             return _dbms.GetModule<P>().Execute(arg);
         }
+
+       
 
         public TransactionHandler(IDBAdapterInfo entry): base(entry) {
         }

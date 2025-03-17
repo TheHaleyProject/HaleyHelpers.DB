@@ -9,9 +9,7 @@ namespace Haley.Utils {
     public class DBModuleService : DBService, IDBModuleService {
         ILogger _logger;
         ConcurrentDictionary<Type, IDBModule> _modules = new ConcurrentDictionary<Type, IDBModule>();
-
         ConcurrentDictionary<Type, string> _moduleKeys = new ConcurrentDictionary<Type, string>();
-
         string _defaultAdapterKey = string.Empty;
 
         public void SetDefaultAdapterKey(string adapterKey) {
@@ -21,12 +19,16 @@ namespace Haley.Utils {
         }
         public void SetDefaultAdapterKey<P>(string adapterKey) 
             where P : IDBModuleInput {
+            SetDefaultAdapterKey(typeof(P), adapterKey);
+        }
+
+        void SetDefaultAdapterKey(Type moduleType, string adapterKey) {
             if (string.IsNullOrWhiteSpace(adapterKey)) throw new ArgumentNullException(nameof(adapterKey));
             //Set default adapter key for the specific module, if not provided along with the parameter.
-            if (!_moduleKeys.ContainsKey(typeof(P))) {
-                _moduleKeys.TryAdd(typeof(P), adapterKey);
+            if (!_moduleKeys.ContainsKey(moduleType)) {
+                _moduleKeys.TryAdd(moduleType, adapterKey);
             } else {
-                _moduleKeys[typeof(P)] = adapterKey;
+                _moduleKeys[moduleType] = adapterKey;
             }
         }
         public Task<IFeedback> TryRegisterModule<M>()
@@ -45,7 +47,7 @@ namespace Haley.Utils {
         {
             return TryRegisterModuleInternal(typeof(M),module ,seed);
         }
-        async Task<IFeedback> TryRegisterModuleInternal(Type mType, IDBModule module, Dictionary<string,object> seed) {
+        async Task<IFeedback> TryRegisterModuleInternal(Type mType, IDBModule module, Dictionary<string,object> seed, string defaultAdapterKey = null) {
             IFeedback result = new Feedback(false);
             try {
                 //First try to see if the Module has a generic parameter, if yes, then focus on getting it else check if the user has defined any parameter type directly.
@@ -79,6 +81,9 @@ namespace Haley.Utils {
                     if (!initializeStats.Status) return initializeStats;
                 }
                 var status = _modules.TryAdd(paramType, module);
+                if (status && !string.IsNullOrWhiteSpace(defaultAdapterKey)) {
+                    SetDefaultAdapterKey(paramType, defaultAdapterKey);
+                }
                 return new Feedback(status, status ? "Success" : "Failed to register the module");
                 //todo: think of better ways to handle this registration.
             } catch (Exception ex) {
@@ -100,7 +105,7 @@ namespace Haley.Utils {
         public IFeedback GetCommandStatus<P>(Enum cmd) where P : IDBModuleInput {
             return GetModule<P>()?.GetInvocationMethodName(cmd) ?? (IFeedback)new Feedback(false);
         }
-        public async Task<IFeedback> TryRegisterAssembly(Assembly assembly) {
+        public async Task<IFeedback> TryRegisterAssembly(Assembly assembly,string defaultAdapterKey = null) {
             List<IFeedback> results = new List<IFeedback>();
             if (assembly == null) return new Feedback(false, "Assembly is null");
             try {
@@ -109,7 +114,7 @@ namespace Haley.Utils {
                 foreach (var classType in targetClasses) {
                     IFeedback targetfb = new Feedback() {Result = classType.Name };
                     try {
-                       targetfb = await TryRegisterModuleInternal(classType,null, null);
+                       targetfb = await TryRegisterModuleInternal(classType,null, null, defaultAdapterKey);
                     } catch (Exception ex) {
                         targetfb.Status = false;
                         targetfb.Message = classType.Name + Environment.NewLine + ex.Message;

@@ -13,19 +13,19 @@ namespace Haley.Utils {
     //DB ADAPTER SERVICE
     public class DBService : ConcurrentDictionary<string, IDBAdapter>, IDBService {
 
-        private static DBService _instance;
-        public static DBService Instance {
-            get {
-                if (_instance == null) { _instance = new DBService(); }
-                return _instance;
-            }
-            set { if (_instance == null) _instance = value; }
-        }
+        //private static DBService _instance;
+        //public static DBService Instance {
+        //    get {
+        //        if (_instance == null) { _instance = new DBService(); }
+        //        return _instance;
+        //    }
+        //    set { if (_instance == null) _instance = value; }
+        //}
 
-        public IDBService SetAsInstance() {
-            Instance = this; 
-            return this;
-        }
+        //public IDBService SetAsInstance() {
+        //    Instance = this; 
+        //    return this;
+        //}
 
         const string DBA_ENTRIES = "DbaEntries";
         const string DBNAME_KEY = "database=";
