@@ -9,7 +9,7 @@ namespace Haley.Utils {
     public class DBModuleService : DBService, IDBModuleService {
         ILogger _logger;
         ConcurrentDictionary<Type, IDBModule> _modules = new ConcurrentDictionary<Type, IDBModule>();
-        ConcurrentDictionary<Type, string> _moduleKeys = new ConcurrentDictionary<Type, string>();
+        ConcurrentDictionary<Type, string> _moduleAdapterKeys = new ConcurrentDictionary<Type, string>();
         string _defaultAdapterKey = string.Empty;
 
         public void SetDefaultAdapterKey(string adapterKey) {
@@ -21,14 +21,13 @@ namespace Haley.Utils {
             where P : IDBModuleInput {
             SetDefaultAdapterKey(typeof(P), adapterKey);
         }
-
         void SetDefaultAdapterKey(Type moduleType, string adapterKey) {
             if (string.IsNullOrWhiteSpace(adapterKey)) throw new ArgumentNullException(nameof(adapterKey));
             //Set default adapter key for the specific module, if not provided along with the parameter.
-            if (!_moduleKeys.ContainsKey(moduleType)) {
-                _moduleKeys.TryAdd(moduleType, adapterKey);
+            if (!_moduleAdapterKeys.ContainsKey(moduleType)) {
+                _moduleAdapterKeys.TryAdd(moduleType, adapterKey);
             } else {
-                _moduleKeys[moduleType] = adapterKey;
+                _moduleAdapterKeys[moduleType] = adapterKey;
             }
         }
         public Task<IFeedback> TryRegisterModule<M>()
@@ -95,15 +94,21 @@ namespace Haley.Utils {
             if (!_modules.ContainsKey(argT)) return null;
             return _modules[argT];
         }
-
-        public string GetModuleKey<P>() where P : IDBModuleInput {
+        public string GetAdapterKey<P>() where P : IDBModuleInput {
             var argT = typeof(P);
-            if (!_moduleKeys.ContainsKey(argT)) return null;
-            return _moduleKeys[argT];
+            if (!_moduleAdapterKeys.ContainsKey(argT)) return GetAdapterKey();
+            return _moduleAdapterKeys[argT];
         }
-
+        public string GetAdapterKey() {
+            return _defaultAdapterKey;
+        }
         public IFeedback GetCommandStatus<P>(Enum cmd) where P : IDBModuleInput {
             return GetModule<P>()?.GetInvocationMethodName(cmd) ?? (IFeedback)new Feedback(false);
+        }
+        public ITransactionHandler GetTransactionHandler<P>() where P : IDBModuleInput {
+           var akey =  GetAdapterKey<P>();
+            if (string.IsNullOrWhiteSpace(akey)) throw new ArgumentNullException("Adapter key cannot be null or empty");
+            return base.GetTransactionHandler(akey);
         }
         public async Task<IFeedback> TryRegisterAssembly(Assembly assembly,string defaultAdapterKey = null) {
             List<IFeedback> results = new List<IFeedback>();
@@ -139,12 +144,11 @@ namespace Haley.Utils {
         protected override IDBService GetDBService() {
             return this;
         }
-
         public Task<IFeedback> Execute<P>(P arg) where P : IDBModuleInput {
             var argT = typeof(P);
             if (string.IsNullOrWhiteSpace(arg.Key) && arg is ParameterBase pb) {
-                if (_moduleKeys.ContainsKey(argT)) {
-                    pb.Key = _moduleKeys[argT];
+                if (_moduleAdapterKeys.ContainsKey(argT)) {
+                    pb.Key = _moduleAdapterKeys[argT];
                 } else if (!string.IsNullOrWhiteSpace(_defaultAdapterKey)) {
                     pb.Key = _defaultAdapterKey;
                 } else {
@@ -153,7 +157,6 @@ namespace Haley.Utils {
             }
             return GetModule<P>()?.Execute(arg) ?? Task.FromResult((IFeedback)new Feedback(false));
         }
-
         public DBModuleService(ILogger logger, bool autoConfigure = true):base(autoConfigure) {
             _logger = logger;
         }

@@ -10,6 +10,11 @@ namespace Haley.Models
     public abstract class DBModuleInput : ParameterBase, IDBModuleInput{
         internal IDBAdapter Adapter { get; set; }
         public Enum Command { get; protected set; }
+        public void UpdateCommand(Enum command) {
+            Command = command; //Change the command;
+        }
+        public void ClearParameters() => ClearParametersInternal();
+        public object[] Arguments { get; protected set; }
         public DBModuleInput(Enum cmd,string key) : base(key) { Command = cmd; }
     }
 }

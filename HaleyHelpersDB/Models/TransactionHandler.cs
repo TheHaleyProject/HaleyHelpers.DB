@@ -41,20 +41,20 @@ namespace Haley.Models
             ValidateDBService();
             return _dbms.GetModule<P>();
         }
-        public string GetModuleKey<P>() where P : IDBModuleInput {
+        public string GetAdapterKey<P>() where P : IDBModuleInput {
             ValidateDBService();
-            return _dbms.GetModuleKey<P>();
+            return _dbms.GetAdapterKey<P>();
         }
-        public string GetAssemblyKey<P>() where P : Assembly {
+        public string GetAdapterKey() {
             ValidateDBService();
-            return _dbms.GetAssemblyKey<P>();
+            return _dbms.GetAdapterKey();
         }
         public Task<IFeedback> Execute<P>(P arg) where P : IDBModuleInput {
             ValidateDBService();
             //Now, we need to attach the adapter to the argument.
             if (arg != null && arg is DBModuleInput argMP) {
                 argMP.Adapter = this;
-                argMP.Key = _dbms.GetModuleKey<P>();
+                argMP.Key = _dbms.GetAdapterKey<P>();
             }
             //if required, we can also fetch the key and set here itself.
             return _dbms.GetModule<P>().Execute(arg);
