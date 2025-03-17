@@ -7,7 +7,7 @@ using System.Reflection;
 namespace Haley.Models
 {
     //Each connecton util is expected to contain one connection string within it.
-    public sealed class TransactionHandler : DBAdapter, ITransactionHandler {
+    public class TransactionHandler : DBAdapter, ITransactionHandler {
         IDBService _dbsVar;
         internal IDBService _dbs { 
             get { return _dbsVar; }
@@ -29,7 +29,17 @@ namespace Haley.Models
             SQLHandler.Begin(); //Do not return this object.
             return this; //Send this as the transaction.
         }
+        public P CreateDBInput<P>() where P: IDBModuleInput,new() {
+            return CreateDBInput(new P());
+        }
 
+        public P CreateDBInput<P>(P arg) where P : IDBModuleInput {
+            if (arg != null && arg is DBModuleInput argMP) {
+                argMP.Adapter = this;
+                argMP.TransactionModeOnly = true;
+            }
+            return arg;
+        }
         void ValidateDBService(bool validateModule = false) {
             if (_dbs == null) throw new ArgumentNullException($@"DBService is not defined inside the Transaction Handler for executing this operation.");
             if (validateModule && _dbms == null) throw new ArgumentException($@"DB Module Service is not defined inside the Transaction Handler for executing this operation.");
@@ -56,10 +66,12 @@ namespace Haley.Models
             if (arg != null && arg is DBModuleInput argMP) {
                 argMP.Adapter = this;
                 argMP.Key = _dbms.GetAdapterKey<P>();
+                argMP.TransactionModeOnly = true; //not required at all
             }
             //if required, we can also fetch the key and set here itself.
             return _dbms.GetModule<P>().Execute(arg);
         }
+
         public TransactionHandler(IDBAdapterInfo entry): base(entry) {
         }
     }

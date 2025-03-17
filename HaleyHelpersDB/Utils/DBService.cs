@@ -245,9 +245,11 @@ namespace Haley.Utils {
 
         protected virtual IDBService GetDBService() { return this; }
         public ITransactionHandler GetTransactionHandler(string adapterKey) {
+            return new TransactionHandler(GetAdapterInfo(adapterKey)) {_dbs = GetDBService() }; 
+        }
+        protected IDBAdapterInfo GetAdapterInfo(string adapterKey) {
             if (string.IsNullOrWhiteSpace(adapterKey) || !ContainsKey(adapterKey)) throw new ArgumentNullException($@"Adapter key not registered {adapterKey}");
-            var newInfo = this[adapterKey].Info.Clone() as IDBAdapterInfo; //All connection strings properly parsed.
-            return new TransactionHandler(newInfo) {_dbs = GetDBService() }; //Create an adapter and also turn on the transaction mode, which means it can only make calls inside a transaction.
+           return this[adapterKey].Info.Clone() as IDBAdapterInfo; //All connection strings properly parsed.
         }
         public void SetServiceUtil(IDBServiceUtil util) {
             _util = util;

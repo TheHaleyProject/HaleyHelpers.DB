@@ -108,7 +108,7 @@ namespace Haley.Utils {
         public ITransactionHandler GetTransactionHandler<P>() where P : IDBModuleInput {
            var akey =  GetAdapterKey<P>();
             if (string.IsNullOrWhiteSpace(akey)) throw new ArgumentNullException("Adapter key cannot be null or empty");
-            return base.GetTransactionHandler(akey);
+            return base.GetTransactionHandler(akey); 
         }
         public async Task<IFeedback> TryRegisterAssembly(Assembly assembly,string defaultAdapterKey = null) {
             List<IFeedback> results = new List<IFeedback>();
