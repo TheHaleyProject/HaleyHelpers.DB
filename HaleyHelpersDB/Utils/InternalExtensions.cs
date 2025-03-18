@@ -1,7 +1,7 @@
 ﻿using Haley.Enums;
 
 namespace Haley.Utils {
-    internal static class DBAUtils {
+    internal static class InternalExtensions {
         internal static object ApplyFilter(this object input, ResultFilter filter) {
             if (filter == ResultFilter.None || input == null) return input; //Return result as is.
             //var inputObj = await input;

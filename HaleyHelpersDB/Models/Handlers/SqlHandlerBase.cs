@@ -84,22 +84,26 @@ namespace Haley.Models {
             }
         }
 
-        public bool TransactionMode  { get; protected set; }
-
         public virtual async Task<object> ExecuteInternal(IAdapterParameter input, Func<IDbCommand, Task<object>> processor, params (string key, object value)[] parameters) {
             if (!(input is AdapterParameter)) throw new ArgumentException($@"Input is not derived from {nameof(AdapterParameter)}. Cannot obtain the connection string information.");
             var conn = GetConnection(_conString);
             //INITIATE CONNECTION
             input.Logger?.LogInformation($@"Opening connection - {_conString}");
             //conn.Open();
-            if (_transaction == null && conn is DbConnection) await ((DbConnection)conn).OpenAsync(); //For pgsql, we don't do this. It is done by NPGSQL source
+            if (input.TransactionMode) {
+                if (_transaction == null)throw new ArgumentNullException("This SQL Handler will work only inside a transaction. Transaction appears to be null. Please verify if you have disposed or closed the transaction object.");
+            } else if (conn is DbConnection dbc1) {
+                await dbc1.OpenAsync(); //For pgsql, we don't do this. It is done by NPGSQL source
+            }
+
             IDbCommand cmd = GetCommand(conn);
             cmd.CommandText = input.Query;
             input.Logger?.LogInformation("Creating query");
             FillParameters(cmd, input, parameters);
             input.Logger?.LogInformation("About to execute");
             var result = await processor.Invoke(cmd);
-            if (_transaction == null && conn is DbConnection) await ((DbConnection)conn).CloseAsync();
+
+            if (!input.TransactionMode && conn is DbConnection dbc2) await dbc2.CloseAsync();
             input.Logger?.LogInformation("Connection closed");
             return result;
         }

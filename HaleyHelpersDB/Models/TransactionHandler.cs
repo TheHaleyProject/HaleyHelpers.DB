@@ -36,7 +36,7 @@ namespace Haley.Models
         public P CreateDBInput<P>(P arg) where P : IDBModuleInput {
             if (arg != null && arg is DBModuleInput argMP) {
                 argMP.Adapter = this;
-                argMP.TransactionModeOnly = true;
+                argMP.TransactionMode = true;
             }
             return arg;
         }
@@ -66,7 +66,7 @@ namespace Haley.Models
             if (arg != null && arg is DBModuleInput argMP) {
                 argMP.Adapter = this;
                 argMP.Key = _dbms.GetAdapterKey<P>();
-                argMP.TransactionModeOnly = true; //not required at all
+                argMP.TransactionMode = true; //not required at all
             }
             //if required, we can also fetch the key and set here itself.
             return _dbms.GetModule<P>().Execute(arg);

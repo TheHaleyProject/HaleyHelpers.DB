@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Haley.Utils
 {
-    public static class DBModuleExtensions{
+    public static class DBExtensions{
         public static IAdapterParameter Convert(this IParameterBase input) {
             return input.Convert(string.Empty);
         }
@@ -16,8 +16,15 @@ namespace Haley.Utils
             if (input == null) throw new ArgumentNullException($@"Input cannot be null for conversion");
             var db = new AdapterParameter(input.Key) { Query = query};
             db.SetParameters(new Dictionary<string, object>(input.Parameters)); //since parameter set is protected.
-            if (input is DBModuleInput mdp) db.Adapter = mdp.Adapter; //set the target
+            if (input is DBModuleInput mdp) {
+                db.Adapter = mdp.Adapter; //set the target
+                db.TransactionMode = mdp.TransactionMode;
+            }
             return db;
+        }
+
+        public static P ForHandler<P>(this IDBModuleInput input, ITransactionHandler handler) where P: IDBModuleInput {
+            return (P)handler.CreateDBInput(input);
         }
     }
 }

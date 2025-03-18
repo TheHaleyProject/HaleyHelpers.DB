@@ -14,6 +14,7 @@ namespace Haley.Models {
         public Func<string, object, bool> ParamHandler { get; set; }
         public string OutputName { get; set; }
         public bool Prepare { get; set; } = false;
+        public bool TransactionMode { get; set; }
         public AdapterParameter(string key) :base (key){
             Filter = ResultFilter.None; }
     }
