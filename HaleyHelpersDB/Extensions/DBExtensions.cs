@@ -1,4 +1,5 @@
 ﻿using Haley.Abstractions;
+using Haley.Enums;
 using Haley.Models;
 using System;
 using System.Collections.Generic;
@@ -21,6 +22,12 @@ namespace Haley.Utils
                 db.TransactionMode = mdp.TransactionMode;
             }
             return db;
+        }
+
+        public static IAdapterParameter Add(this IAdapterParameter input, ResultFilter filter) {
+            if (input == null) throw new ArgumentNullException($@"Input Parameter cannot be null");
+            input.Filter = filter;
+            return input;
         }
 
         public static P ForHandler<P>(this IDBModuleInput input, ITransactionHandler handler) where P: IDBModuleInput {
