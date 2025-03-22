@@ -8,8 +8,8 @@ using System.Threading.Tasks;
 namespace Haley.Models
 {
     public abstract class DBModuleInput : ParameterBase, IDBModuleInput{
-        protected Dictionary<string, Dictionary<string, object>> _groupParameters = new Dictionary<string, Dictionary<string, object>>(StringComparer.InvariantCultureIgnoreCase); //Group parameters
-        protected Dictionary<string, object[]> _groupArguments = new Dictionary<string, object[]>(StringComparer.InvariantCultureIgnoreCase);
+        protected Dictionary<Enum, Dictionary<string, object>> _groupParameters = new Dictionary<Enum, Dictionary<string, object>>(); //Group parameters
+        protected Dictionary<Enum, object[]> _groupArguments = new Dictionary<Enum, object[]>();
         internal IDBAdapter Adapter { get; set; }
         public Enum Command { get; protected set; }
         public object[] Arguments { get; protected set; }
@@ -18,8 +18,8 @@ namespace Haley.Models
             Command = command; //Change the command;
         }
 
-        protected void AddGroupParameter(string groupKey, string key, object value, bool replace = true) {
-            if (string.IsNullOrWhiteSpace(key) || string.IsNullOrWhiteSpace(groupKey)) throw new ArgumentNullException($@"Group parameter add failed. GroupKey & Key are mandatory");
+        protected void AddGroupParameter(Enum groupKey, string key, object value, bool replace = true) {
+            if (string.IsNullOrWhiteSpace(key) || groupKey == null) throw new ArgumentNullException($@"Group parameter add failed. GroupKey & Key are mandatory");
             if (!_groupParameters.ContainsKey(groupKey)) _groupParameters.Add(groupKey, new Dictionary<string, object>(StringComparer.InvariantCultureIgnoreCase));
             if (_groupParameters[groupKey].ContainsKey(key)) {
                 if (!replace) return;//Contains the key and replace is also not allowed.
@@ -30,20 +30,20 @@ namespace Haley.Models
             }
         }
 
-        protected void SetParameters(string groupKey) {
+        protected void SetParameters(Enum groupKey) {
             ClearParameters();
             if (!_groupParameters.ContainsKey(groupKey)) return;
             SetParametersInternal(_groupParameters[groupKey]);
         }
 
-        protected void SetArguments(string groupKey) {
+        protected void SetArguments(Enum groupKey) {
             ClearArguments();
             if (!_groupArguments.ContainsKey(groupKey)) return;
             Arguments = _groupArguments[groupKey];
         }
 
-        protected void AddGroupArgument(string groupKey, params object[] args) {
-            if (string.IsNullOrWhiteSpace(groupKey)) throw new ArgumentNullException($@"Group Argument add failed. GroupKey is mandatory");
+        protected void AddGroupArgument(Enum groupKey, params object[] args) {
+            if (groupKey == null) throw new ArgumentNullException($@"Group Argument add failed. GroupKey is mandatory");
             if (!_groupArguments.ContainsKey(groupKey)) {
                 _groupArguments[groupKey] = args;
             } else {
@@ -60,8 +60,8 @@ namespace Haley.Models
             Arguments = new object[] { };
         }
 
-        public void ClearGroupParameters(string groupKey) {
-            if (string.IsNullOrWhiteSpace(groupKey)) return;
+        public void ClearGroupParameters(Enum groupKey) {
+            if (groupKey == null) return;
             if (!_groupParameters.ContainsKey(groupKey)) return;
             _groupParameters[groupKey].Clear();
         }
