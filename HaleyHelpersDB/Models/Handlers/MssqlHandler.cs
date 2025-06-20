@@ -7,6 +7,7 @@ using System.Data.Common;
 namespace Haley.Models {
 
     internal class MssqlHandler : SqlHandlerBase {
+        protected override string ProviderName { get; } = "MSSQL";
         public MssqlHandler(string constring) : base(constring) { }
 
         // https://stackoverflow.com/questions/35928312/c-sharp-mysqlcommand-executenonquery-return-1

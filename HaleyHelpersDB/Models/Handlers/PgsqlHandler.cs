@@ -12,12 +12,20 @@ using System.Runtime.CompilerServices;
 namespace Haley.Models {
 
     internal class PgsqlHandler : SqlHandlerBase {
+        protected override string ProviderName { get; } = "PGSQL";
         public PgsqlHandler(string constring) : base(constring) { }
         //NpgsqlDataSource.Create(input.Conn)
-        protected override IDbCommand GetCommand(object connection) {
-            if (connection is NpgsqlDataSource npgs) return npgs.CreateCommand();
-            return base.GetCommand(connection);
+        protected override IDbCommand CreateWrappedCommand(object conn) {
+            if (conn is NpgsqlDataSource npgs) return npgs.CreateCommand();
+            //return base.GetCommand(conn); //this might return stack overflow
+            throw new NotImplementedException();
         }
+
+        protected override bool IsConnectionWrapped(object conn) {
+            if (conn is NpgsqlDataSource npgs) return true;
+            return false;
+        }
+
         protected override void FillParameterInternal(IDbDataParameter msp, object pvalue) {
             if (msp is NpgsqlParameter npsp) {
                 var tup = (ITuple)pvalue;

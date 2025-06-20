@@ -17,6 +17,10 @@ using System.Runtime.CompilerServices;
 namespace Haley.Models {
 
     internal abstract class SqlHandlerBase : ISqlHandler {
+        protected virtual bool IsConnectionWrapped(object conn) => false;
+        protected virtual IDbCommand CreateWrappedCommand(object conn) => throw new NotImplementedException();
+        protected abstract string ProviderName { get; }
+        bool _disposed;
         protected string _conString;
         string TupleTypeName = typeof(ValueTuple).FullName!;
         public SqlHandlerBase(string constr) { _conString = constr; }
@@ -29,7 +33,8 @@ namespace Haley.Models {
             if (tup.Length > 1 && tup[1] is  DbType dbt) msp.DbType = dbt;
         }
         protected abstract object GetConnection(string conStr, bool forTransaction = false);
-        protected virtual IDbCommand GetCommand(object connection) { 
+        protected virtual IDbCommand GetCommand(object connection) {
+            if (IsConnectionWrapped(connection)) return CreateWrappedCommand(connection);
             if (connection is DbConnection dbc) return dbc.CreateCommand();
             throw new ArgumentException($@"Unable to create command for the given connection type : {connection.GetType()}");
         }
@@ -112,7 +117,8 @@ namespace Haley.Models {
 
             try {
                 var result = await ExecuteInternal(input, async (dbc) => {
-                    if (!(dbc is DbCommand cmd)) return null;
+                    if (dbc is not DbCommand cmd)
+                        throw new InvalidOperationException($"Expected DbCommand but received: {dbc.GetType().FullName}");
                     int status = 0;
                     if (input.Prepare) {
                         await cmd.PrepareAsync();
@@ -182,9 +188,15 @@ namespace Haley.Models {
             }, parameters);
         }
 
+        
         public void Dispose() {
             //Will not automatically dispose. Just a means to dispose resources manually without waiting for the garbage collector
-            Commit();
+            if (_disposed) return;
+            try {
+                Commit();
+            } finally {
+                _disposed = true;
+            }
         }
 
         public IDBTransaction Begin() {

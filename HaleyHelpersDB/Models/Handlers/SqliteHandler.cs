@@ -8,6 +8,7 @@ using MySqlConnector;
 namespace Haley.Models {
 
     internal class SqliteHandler : SqlHandlerBase {
+        protected override string ProviderName { get; } = "SQLITE";
         public SqliteHandler(string constring) : base(constring) { }
         
         protected override object GetConnection(string conStr, bool forTransaction) {
