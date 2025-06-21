@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HaleyHelpers", "..\HaleyHel
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HaleyExtensions", "..\HaleyExtensions\HaleyExtensions\HaleyExtensions.csproj", "{27CB92CF-3040-E223-2BE7-56293961E67B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HaleyRest", "..\HaleyRest\HaleyRest\HaleyRest.csproj", "{B46C690C-E21E-B6E2-34A3-D93C4A213025}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{27CB92CF-3040-E223-2BE7-56293961E67B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{27CB92CF-3040-E223-2BE7-56293961E67B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{27CB92CF-3040-E223-2BE7-56293961E67B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B46C690C-E21E-B6E2-34A3-D93C4A213025}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B46C690C-E21E-B6E2-34A3-D93C4A213025}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B46C690C-E21E-B6E2-34A3-D93C4A213025}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B46C690C-E21E-B6E2-34A3-D93C4A213025}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

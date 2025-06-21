@@ -1,15 +1,17 @@
 ﻿// See https://aka.ms/new-console-template for more information
 using Haley.Models;
-using Haley.Extensions;
+using Haley.Utils;
+//using Haley.Extensions;
 
+var dbs = new DBService();
 
 Console.WriteLine("Hello, World!");
 
-var dba = new DBAdapterDictionary();
-dba.Configure();
+//var dba = new DBAdapterDictionary();
+//dba.Configure();
 
-var result = (await dba["dbsql"].ExecuteReader("select * from object limit 10", null)).Select(true).Convert(null);
-Console.WriteLine("OMG");
+//var result = (await dba["dbsql"].ExecuteReader("select * from object limit 10", null)).Select(true).Convert(null);
+//Console.WriteLine("OMG");
 // ####### MS SQL
 
 //var cstr = $@"server=srv-db07;database=;uid=CDEUser;pwd=; TrustServerCertificate=True;";

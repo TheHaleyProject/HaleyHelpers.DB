@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Data;
+using System.Diagnostics;
 
 namespace Haley.Utils {
 
@@ -27,7 +28,7 @@ namespace Haley.Utils {
         //    return this;
         //}
 
-        const string DBA_ENTRIES = "DbaEntries";
+        const string DBASTRING = "DBAStrings";
         const string DBNAME_KEY = "database=";
         const string DBTYPE_KEY = "dbtype=";
         const string SEARCHPATH_KEY = "searchpath=";
@@ -60,7 +61,7 @@ namespace Haley.Utils {
                 conStr = string.Join(";", allparts.Where(q => !q.Trim().StartsWith(key, StringComparison.OrdinalIgnoreCase)).ToArray());
             }
 
-            //ADD NEW VALUE.
+            //ADD NEW VALUE. ? Where is the equal to sign?
             conStr += $@";{key}{value}";
             return conStr;
         }
@@ -136,9 +137,21 @@ namespace Haley.Utils {
             //Supposed to read the json files and then generate all the adapters.
             try {
                 var root = GetConfigurationRoot(reload);
-                var entries = root.GetSection(DBA_ENTRIES)?.Get<DBAdapterInfo[]>(); //Fetch all entry information.
-                if (entries == null) return this;
-                foreach (var entry in entries) {
+                var dbastrings = root.GetSection(DBASTRING);
+                if (dbastrings == null || dbastrings.GetChildren() == null || dbastrings.GetChildren().Count() == 0) return this; //Dont' process if we dont' have any children.
+                List<AdapterConfig> adapters = new List<AdapterConfig>();
+                foreach (var kvp in dbastrings.GetChildren()) {
+                    try {
+                        if (string.IsNullOrWhiteSpace(kvp.Value)) continue;
+                        var aconfig = kvp.Value.DictionaryConvert().Map<AdapterConfig>();
+                        aconfig.DBAString = kvp.Value;
+                        aconfig.AdapterKey = kvp.Key;
+                        adapters.Add(aconfig);
+                    } catch (Exception ex) {
+                        Debug.WriteLine(ex.Message);
+                    }
+                }
+                foreach (var entry in adapters) {
 
                     if (string.IsNullOrWhiteSpace(entry.AdapterKey) || string.IsNullOrWhiteSpace(entry.ConnectionKey)) continue;
                     //based upon the connection string key in the entry, fetch the corresponding Connection string and it's dbtype from the already parsed connection strings.
@@ -189,7 +202,7 @@ namespace Haley.Utils {
         }
         #endregion Add or Generate Connections
 
-        public IDBService Add(IDBAdapterInfo entry, bool replace = true) {
+        public IDBService Add(IAdapterConfig entry, bool replace = true) {
             var adapter = new DBAdapter(entry);
 
             if (!replace && ContainsKey(entry.AdapterKey)) return this;
@@ -247,9 +260,9 @@ namespace Haley.Utils {
         public ITransactionHandler GetTransactionHandler(string adapterKey) {
             return new TransactionHandler(GetAdapterInfo(adapterKey)) {_dbs = GetDBService() }; 
         }
-        protected IDBAdapterInfo GetAdapterInfo(string adapterKey) {
+        protected IAdapterConfig GetAdapterInfo(string adapterKey) {
             if (string.IsNullOrWhiteSpace(adapterKey) || !ContainsKey(adapterKey)) throw new ArgumentNullException($@"Adapter key not registered {adapterKey}");
-           return this[adapterKey].Info.Clone() as IDBAdapterInfo; //All connection strings properly parsed.
+           return this[adapterKey].Info.Clone() as IAdapterConfig; //All connection strings properly parsed.
         }
         public void SetServiceUtil(IDBServiceUtil util) {
             _util = util;
@@ -267,21 +280,21 @@ namespace Haley.Utils {
             return NonQuery(input.Convert(query), parameters);
         }
 
-        public async Task<object> Read(IAdapterParameter input,  params (string key, object value)[] parameters) {
-            if (input is AdapterParameter inputEx) inputEx.ReturnsResult = true;
+        public async Task<object> Read(IAdapterArgs input,  params (string key, object value)[] parameters) {
+            if (input is AdapterArgs inputEx) inputEx.ReturnsResult = true;
             return await ExecuteInternal(input, parameters);
         }
 
-        public async Task<object> Scalar(IAdapterParameter input, params (string key, object value)[] parameters) {
-            if (input is AdapterParameter inputEx) {
+        public async Task<object> Scalar(IAdapterArgs input, params (string key, object value)[] parameters) {
+            if (input is AdapterArgs inputEx) {
                 inputEx.ReturnsResult = true;
                 inputEx.IsScalar = true;
             }
             return await ExecuteInternal(input, parameters);
         }
 
-        public async Task<object> NonQuery(IAdapterParameter input, params (string key, object value)[] parameters) {
-            if (input is AdapterParameter inputEx) inputEx.ReturnsResult = false;
+        public async Task<object> NonQuery(IAdapterArgs input, params (string key, object value)[] parameters) {
+            if (input is AdapterArgs inputEx) inputEx.ReturnsResult = false;
             return await ExecuteInternal(input, parameters);
         }
 
@@ -300,17 +313,17 @@ namespace Haley.Utils {
         //    return result.ToArray();
         //}
 
-        IDBAdapter GetAdapter(IAdapterParameter input) {
-            if (input is AdapterParameter adp && adp.Adapter != null) return adp.Adapter;
+        IDBAdapter GetAdapter(IAdapterArgs input) {
+            if (input is AdapterArgs adp && adp.Adapter != null) return adp.Adapter;
             if (string.IsNullOrWhiteSpace(input.Key)) throw new ArgumentException("Adapter key cannot be empty");
             if (!ContainsKey(input.Key)) throw new ArgumentNullException($@"DBAKey missing: {input.Key} is not found in the dictionary");
             return this[input.Key];
         }
 
-        async Task<object> ExecuteInternal(IAdapterParameter input, params (string key, object value)[] parameters) {
+        async Task<object> ExecuteInternal(IAdapterArgs input, params (string key, object value)[] parameters) {
             try {
                 object result = null;
-                if (input is AdapterParameter inputEx && inputEx.ReturnsResult) {
+                if (input is AdapterArgs inputEx && inputEx.ReturnsResult) {
                     if (inputEx.IsScalar) {
                         result = (await GetAdapter(input).Scalar(input, parameters));
                     } else {

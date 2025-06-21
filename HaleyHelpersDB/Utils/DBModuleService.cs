@@ -18,7 +18,7 @@ namespace Haley.Utils {
             _defaultAdapterKey = adapterKey;
         }
         public void SetDefaultAdapterKey<P>(string adapterKey) 
-            where P : IDBModuleInput {
+            where P : IModuleArgs {
             SetDefaultAdapterKey(typeof(P), adapterKey);
         }
         void SetDefaultAdapterKey(Type moduleType, string adapterKey) {
@@ -58,9 +58,9 @@ namespace Haley.Utils {
 
                 if (module == null) module = (IDBModule)Activator.CreateInstance(mType);
                 Type paramType = dbmInterface.GetGenericArguments().Where(
-                    p => p.GetInterfaces().Any(q => q.Name == $@"{nameof(IDBModuleInput)}")
+                    p => p.GetInterfaces().Any(q => q.Name == $@"{nameof(IModuleArgs)}")
                     ).FirstOrDefault() ?? module.ParameterType;
-                if (paramType == null) return new Feedback(false, $@"The type argument of {nameof(IDBModule)} should implement {nameof(IDBModuleInput)}");
+                if (paramType == null) return new Feedback(false, $@"The type argument of {nameof(IDBModule)} should implement {nameof(IModuleArgs)}");
                 ////var cmdType = paramType.GetInterfaces()?.FirstOrDefault(p => p.IsGenericType && p.Name == $@"{nameof(IModuleParameter)}`1");
                 ////if (cmdType == null) return (false, $@"The type argument of {nameof(IDBModule)} should implement {nameof(IModuleParameter)} ");//Even after above step if we dont' get the parameter type, don't register it.
                 if (_modules.ContainsKey(paramType)) return new Feedback(false, $@"{paramType} is already registered.");
@@ -89,12 +89,12 @@ namespace Haley.Utils {
                 return new Feedback(false, $@"Exception: {ex.Message}");
             }
         }
-        public IDBModule GetModule<P>() where P : IDBModuleInput {
+        public IDBModule GetModule<P>() where P : IModuleArgs {
             var argT = typeof(P);
             if (!_modules.ContainsKey(argT)) return null;
             return _modules[argT];
         }
-        public string GetAdapterKey<P>() where P : IDBModuleInput {
+        public string GetAdapterKey<P>() where P : IModuleArgs {
             var argT = typeof(P);
             if (!_moduleAdapterKeys.ContainsKey(argT)) return GetAdapterKey();
             return _moduleAdapterKeys[argT];
@@ -102,10 +102,10 @@ namespace Haley.Utils {
         public string GetAdapterKey() {
             return _defaultAdapterKey;
         }
-        public IFeedback GetCommandStatus<P>(Enum cmd) where P : IDBModuleInput {
+        public IFeedback GetCommandStatus<P>(Enum cmd) where P : IModuleArgs {
             return GetModule<P>()?.GetInvocationMethodName(cmd) ?? (IFeedback)new Feedback(false);
         }
-        public ITransactionHandler GetTransactionHandler<P>() where P : IDBModuleInput {
+        public ITransactionHandler GetTransactionHandler<P>() where P : IModuleArgs {
            var akey =  GetAdapterKey<P>();
             if (string.IsNullOrWhiteSpace(akey)) throw new ArgumentNullException("Adapter key cannot be null or empty");
             return base.GetTransactionHandler(akey); 
@@ -144,7 +144,7 @@ namespace Haley.Utils {
         protected override IDBService GetDBService() {
             return this;
         }
-        public Task<IFeedback> Execute<P>(P arg) where P : IDBModuleInput {
+        public Task<IFeedback> Execute<P>(P arg) where P : IModuleArgs {
             var argT = typeof(P);
             if (string.IsNullOrWhiteSpace(arg.Key) && arg is ParameterBase pb) {
                 if (_moduleAdapterKeys.ContainsKey(argT)) {

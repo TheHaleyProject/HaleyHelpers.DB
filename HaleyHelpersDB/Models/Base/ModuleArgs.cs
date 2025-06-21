@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Haley.Models
 {
-    public abstract class DBModuleInput : ParameterBase, IDBModuleInput{
+    public abstract class ModuleArgs : ParameterBase, IModuleArgs{
         protected Dictionary<Enum, Dictionary<string, object>> _groupParameters = new Dictionary<Enum, Dictionary<string, object>>(); //Group parameters
         protected Dictionary<Enum, object[]> _groupArguments = new Dictionary<Enum, object[]>();
         internal IDBAdapter Adapter { get; set; }
@@ -71,6 +71,6 @@ namespace Haley.Models
             if (input.Any(p => p == null)) throw new ArgumentNullException("Required input object is missing");
         }
 
-        public DBModuleInput(Enum cmd,string key) : base(key) { Command = cmd; }
+        public ModuleArgs(Enum cmd,string key) : base(key) { Command = cmd; }
     }
 }

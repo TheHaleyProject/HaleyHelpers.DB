@@ -39,7 +39,7 @@ namespace Haley.Models {
             throw new ArgumentException($@"Unable to create command for the given connection type : {connection.GetType()}");
         }
         protected abstract IDbDataParameter GetParameter();
-        protected virtual void FillParameters(IDbCommand cmd, IAdapterParameter input, params (string key, object value)[] parameters) {
+        protected virtual void FillParameters(IDbCommand cmd, IAdapterArgs input, params (string key, object value)[] parameters) {
             //Here we know the query and also know the inputs. All we need to do it,just fetch the parameter sets in the query.
             //tocheck: Would it create performance issue to check this? would it take more time to do this? is this duration negligible?
             //priority 1 : parameters params
@@ -89,8 +89,8 @@ namespace Haley.Models {
             }
         }
 
-        public virtual async Task<object> ExecuteInternal(IAdapterParameter input, Func<IDbCommand, Task<object>> processor, params (string key, object value)[] parameters) {
-            if (!(input is AdapterParameter)) throw new ArgumentException($@"Input is not derived from {nameof(AdapterParameter)}. Cannot obtain the connection string information.");
+        public virtual async Task<object> ExecuteInternal(IAdapterArgs input, Func<IDbCommand, Task<object>> processor, params (string key, object value)[] parameters) {
+            if (!(input is AdapterArgs)) throw new ArgumentException($@"Input is not derived from {nameof(AdapterArgs)}. Cannot obtain the connection string information.");
             var conn = GetConnection(_conString);
             //INITIATE CONNECTION
             input.Logger?.LogInformation($@"Opening connection - {_conString}");
@@ -113,7 +113,7 @@ namespace Haley.Models {
             return result;
         }
 
-        public async Task<object> NonQuery(IAdapterParameter input, params (string key, object value)[] parameters) {
+        public async Task<object> NonQuery(IAdapterArgs input, params (string key, object value)[] parameters) {
 
             try {
                 var result = await ExecuteInternal(input, async (dbc) => {
@@ -146,7 +146,7 @@ namespace Haley.Models {
             }
         }
 
-        public async Task<object> Read(IAdapterParameter input, params (string key, object value)[] parameters) {
+        public async Task<object> Read(IAdapterArgs input, params (string key, object value)[] parameters) {
             var result = await ExecuteInternal(input, async (dbc) => {
                 if (!(dbc is DbCommand cmd)) return null;
                 if (input.Prepare) {
@@ -178,7 +178,7 @@ namespace Haley.Models {
             return result as DataSet;
         }
 
-        public async Task<object> Scalar(IAdapterParameter input, params (string key, object value)[] parameters) {
+        public async Task<object> Scalar(IAdapterArgs input, params (string key, object value)[] parameters) {
             return await ExecuteInternal(input, async (dbc) => {
                 if (!(dbc is DbCommand cmd)) return null;
                 if (input.Prepare) {

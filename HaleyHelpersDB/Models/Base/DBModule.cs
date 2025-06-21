@@ -4,7 +4,7 @@ using System.Collections.Concurrent;
 using System.Reflection;
 
 namespace Haley.Models {
-    public abstract class DBModule<DBArg> : DBModule, IDBModule<DBArg> where DBArg : IDBModuleInput {
+    public abstract class DBModule<DBArg> : DBModule, IDBModule<DBArg> where DBArg : IModuleArgs {
         //protected ConcurrentDictionary<Enum,Func<P, Task<DBMResult>>> CmdDic = new ConcurrentDictionary<Enum, Func<P, Task<DBMResult>>>();
 
         public override async Task<IFeedback> Execute<P>(P parameter) {
@@ -36,7 +36,7 @@ namespace Haley.Models {
 
     public abstract class DBModule : IDBModule {
         protected ConcurrentDictionary<Enum, DBMExecuteDelegate> CmdDic = new ConcurrentDictionary<Enum, DBMExecuteDelegate>();
-        public abstract Task<IFeedback> Execute<P>(P parameter) where P:IDBModuleInput;
+        public abstract Task<IFeedback> Execute<P>(P parameter) where P:IModuleArgs;
         public Type ParameterType { get; private set; }
         protected Dictionary<string, object> Seed { get; set; } //Either set by inheritance or by internal services
         internal void SetParameterType(Type ptype) => ParameterType = ptype;
@@ -75,7 +75,7 @@ namespace Haley.Models {
                     if (method.ReturnType != typeof(Task<IFeedback>)) throw new Exception($@"{method.DeclaringType?.Name} : {method.Name} --  Return type doesn't match {nameof(Task<IFeedback>)}");
 
                     var inParams = method.GetParameters();
-                    if (inParams == null || inParams[0] == null || !inParams[0].ParameterType.IsAssignableFrom(typeof(IDBModuleInput))) throw new Exception($@"{method.DeclaringType?.Name} : {method.Name} --  Signature doesn't match the type {nameof(IDBModuleInput)}");
+                    if (inParams == null || inParams[0] == null || !inParams[0].ParameterType.IsAssignableFrom(typeof(IModuleArgs))) throw new Exception($@"{method.DeclaringType?.Name} : {method.Name} --  Signature doesn't match the type {nameof(IModuleArgs)}");
 
                     //Instead of storing as MethodInfo, it is better to generate the delegate and call this, as the overhead and reflection time is less during runtime.
                     if (CmdDic.ContainsKey(@cmd)) throw new Exception($@"{@cmd} for method {method.DeclaringType?.Name}-{method.Name}. The command is already registered to method {CmdDic[@cmd].Method?.Name}");

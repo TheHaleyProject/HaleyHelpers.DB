@@ -29,12 +29,12 @@ namespace Haley.Models
             SQLHandler.Begin(); //Do not return this object.
             return this; //Send this as the transaction.
         }
-        public P CreateDBInput<P>() where P: IDBModuleInput,new() {
+        public P CreateDBInput<P>() where P: IModuleArgs,new() {
             return CreateDBInput(new P());
         }
 
-        public P CreateDBInput<P>(P arg) where P : IDBModuleInput {
-            if (arg != null && arg is DBModuleInput argMP) {
+        public P CreateDBInput<P>(P arg) where P : IModuleArgs {
+            if (arg != null && arg is ModuleArgs argMP) {
                 argMP.Adapter = this;
                 argMP.TransactionMode = true;
             }
@@ -44,15 +44,15 @@ namespace Haley.Models
             if (_dbs == null) throw new ArgumentNullException($@"DBService is not defined inside the Transaction Handler for executing this operation.");
             if (validateModule && _dbms == null) throw new ArgumentException($@"DB Module Service is not defined inside the Transaction Handler for executing this operation.");
         }
-        public IFeedback GetCommandStatus<P>(Enum cmd) where P : IDBModuleInput {
+        public IFeedback GetCommandStatus<P>(Enum cmd) where P : IModuleArgs {
             ValidateDBService();
             return _dbms.GetCommandStatus<P>(cmd);
         }
-        public IDBModule GetModule<P>() where P : IDBModuleInput {
+        public IDBModule GetModule<P>() where P : IModuleArgs {
             ValidateDBService();
             return _dbms.GetModule<P>();
         }
-        public string GetAdapterKey<P>() where P : IDBModuleInput {
+        public string GetAdapterKey<P>() where P : IModuleArgs {
             ValidateDBService();
             return _dbms.GetAdapterKey<P>();
         }
@@ -60,10 +60,10 @@ namespace Haley.Models
             ValidateDBService();
             return _dbms.GetAdapterKey();
         }
-        public Task<IFeedback> Execute<P>(P arg) where P : IDBModuleInput {
+        public Task<IFeedback> Execute<P>(P arg) where P : IModuleArgs {
             ValidateDBService();
             //Now, we need to attach the adapter to the argument.
-            if (arg != null && arg is DBModuleInput argMP) {
+            if (arg != null && arg is ModuleArgs argMP) {
                 argMP.Adapter = this;
                 argMP.Key = _dbms.GetAdapterKey<P>();
                 argMP.TransactionMode = true; //not required at all
@@ -72,7 +72,7 @@ namespace Haley.Models
             return _dbms.GetModule<P>().Execute(arg);
         }
 
-        public TransactionHandler(IDBAdapterInfo entry): base(entry) {
+        public TransactionHandler(IAdapterConfig entry): base(entry) {
         }
     }
 }

@@ -3,7 +3,7 @@ using Haley.Enums;
 using Microsoft.Extensions.Logging;
 
 namespace Haley.Models {
-    public class AdapterParameter : ParameterBase, IAdapterParameter {
+    public class AdapterArgs : ParameterBase, IAdapterArgs {
         internal IDBAdapter Adapter { get; set; }
         internal void SetParameters(Dictionary<string, object> parameters) => SetParametersInternal(parameters);
         public ResultFilter Filter { get; set; }
@@ -15,7 +15,7 @@ namespace Haley.Models {
         public string OutputName { get; set; }
         public bool Prepare { get; set; } = false;
         public bool TransactionMode { get; set; }
-        public AdapterParameter(string key) :base (key){
+        public AdapterArgs(string key) :base (key){
             Filter = ResultFilter.None; }
     }
 }
