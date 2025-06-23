@@ -110,6 +110,11 @@ namespace Haley.Utils {
             if (string.IsNullOrWhiteSpace(akey)) throw new ArgumentNullException("Adapter key cannot be null or empty");
             return base.GetTransactionHandler(akey); 
         }
+
+        public Task<IFeedback> TryRegisterAssembly(string defaultAdapterKey = null) {
+            return TryRegisterAssembly(Assembly.GetCallingAssembly(), defaultAdapterKey); // From wherever we try to call the registration.
+        }
+
         public async Task<IFeedback> TryRegisterAssembly(Assembly assembly,string defaultAdapterKey = null) {
             List<IFeedback> results = new List<IFeedback>();
             if (assembly == null) return new Feedback(false, "Assembly is null");
