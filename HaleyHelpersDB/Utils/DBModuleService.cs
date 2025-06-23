@@ -17,17 +17,17 @@ namespace Haley.Utils {
             if (string.IsNullOrWhiteSpace(adapterKey)) throw new ArgumentNullException(nameof(adapterKey));
             _defaultAdapterKey = adapterKey;
         }
-        public void SetDefaultAdapterKey<P>(string adapterKey) 
-            where P : IModuleArgs {
-            SetDefaultAdapterKey(typeof(P), adapterKey);
+        public void SetDefaultAdapterKey<E>(string adapterKey) 
+            where E : Enum {
+            SetDefaultAdapterKey(typeof(E), adapterKey);
         }
-        void SetDefaultAdapterKey(Type moduleType, string adapterKey) {
+        void SetDefaultAdapterKey(Type cmdType, string adapterKey) {
             if (string.IsNullOrWhiteSpace(adapterKey)) throw new ArgumentNullException(nameof(adapterKey));
             //Set default adapter key for the specific module, if not provided along with the parameter.
-            if (!_moduleAdapterKeys.ContainsKey(moduleType)) {
-                _moduleAdapterKeys.TryAdd(moduleType, adapterKey);
+            if (!_moduleAdapterKeys.ContainsKey(cmdType)) {
+                _moduleAdapterKeys.TryAdd(cmdType, adapterKey);
             } else {
-                _moduleAdapterKeys[moduleType] = adapterKey;
+                _moduleAdapterKeys[cmdType] = adapterKey;
             }
         }
         public Task<IFeedback> TryRegisterModule<M>()
@@ -46,21 +46,22 @@ namespace Haley.Utils {
         {
             return TryRegisterModuleInternal(typeof(M),module ,seed);
         }
-        async Task<IFeedback> TryRegisterModuleInternal(Type mType, IDBModule module, Dictionary<string,object> seed, string defaultAdapterKey = null) {
+        async Task<IFeedback> TryRegisterModuleInternal(Type moduleType, IDBModule module, Dictionary<string,object> seed, string defaultAdapterKey = null) {
             IFeedback result = new Feedback(false);
             try {
                 //First try to see if the Module has a generic parameter, if yes, then focus on getting it else check if the user has defined any parameter type directly.
-                var dbmInterface = mType.GetInterfaces()?.FirstOrDefault(p =>
+                var dbmInterface = moduleType.GetInterfaces()?.FirstOrDefault(p =>
                     p.IsGenericType &&
                     p.Name == $@"{nameof(IDBModule)}`1");
 
                 if (dbmInterface == null) return new Feedback(false, $@"The module should implement the generic interface{nameof(IDBModule)}<> ");
 
-                if (module == null) module = (IDBModule)Activator.CreateInstance(mType);
+                if (module == null) module = (IDBModule)Activator.CreateInstance(moduleType);
+                //Here, we start with Enum..
                 Type paramType = dbmInterface.GetGenericArguments().Where(
-                    p => p.GetInterfaces().Any(q => q.Name == $@"{nameof(IModuleArgs)}")
+                    p => p.GetInterfaces().Any(q => q.Name == $@"{nameof(Enum)}")
                     ).FirstOrDefault() ?? module.ParameterType;
-                if (paramType == null) return new Feedback(false, $@"The type argument of {nameof(IDBModule)} should implement {nameof(IModuleArgs)}");
+                if (paramType == null) return new Feedback(false, $@"The type argument of {nameof(IDBModule)} should implement {nameof(Enum)}");
                 ////var cmdType = paramType.GetInterfaces()?.FirstOrDefault(p => p.IsGenericType && p.Name == $@"{nameof(IModuleParameter)}`1");
                 ////if (cmdType == null) return (false, $@"The type argument of {nameof(IDBModule)} should implement {nameof(IModuleParameter)} ");//Even after above step if we dont' get the parameter type, don't register it.
                 if (_modules.ContainsKey(paramType)) return new Feedback(false, $@"{paramType} is already registered.");
@@ -89,24 +90,34 @@ namespace Haley.Utils {
                 return new Feedback(false, $@"Exception: {ex.Message}");
             }
         }
-        public IDBModule GetModule<P>() where P : IModuleArgs {
-            var argT = typeof(P);
+        public IDBModule GetModule<E>() where E : Enum {
+            var argT = typeof(E);
             if (!_modules.ContainsKey(argT)) return null;
             return _modules[argT];
         }
-        public string GetAdapterKey<P>() where P : IModuleArgs {
-            var argT = typeof(P);
+        public string GetAdapterKey<E>() where E : Enum {
+            var argT = typeof(E);
             if (!_moduleAdapterKeys.ContainsKey(argT)) return GetAdapterKey();
             return _moduleAdapterKeys[argT];
         }
+
+        public IDBModule GetModule(Type cmdType) {
+            if (!_modules.ContainsKey(cmdType)) return null;
+            return _modules[cmdType];
+        }
+        public string GetAdapterKey(Type cmdType) {
+            if (!_moduleAdapterKeys.ContainsKey(cmdType)) return GetAdapterKey();
+            return _moduleAdapterKeys[cmdType];
+        }
+
         public string GetAdapterKey() {
             return _defaultAdapterKey;
         }
-        public IFeedback GetCommandStatus<P>(Enum cmd) where P : IModuleArgs {
-            return GetModule<P>()?.GetInvocationMethodName(cmd) ?? (IFeedback)new Feedback(false);
+        public IFeedback GetCommandStatus(Enum cmd)  {
+            return GetModule(cmd.GetType())?.GetInvocationMethodName(cmd) ?? (IFeedback)new Feedback(false);
         }
-        public ITransactionHandler GetTransactionHandler<P>() where P : IModuleArgs {
-           var akey =  GetAdapterKey<P>();
+        public ITransactionHandler GetTransactionHandler<E>() where E : Enum {
+           var akey =  GetAdapterKey<E>();
             if (string.IsNullOrWhiteSpace(akey)) throw new ArgumentNullException("Adapter key cannot be null or empty");
             return base.GetTransactionHandler(akey); 
         }
@@ -149,8 +160,8 @@ namespace Haley.Utils {
         protected override IDBService GetDBService() {
             return this;
         }
-        public Task<IFeedback> Execute<P>(P arg) where P : IModuleArgs {
-            var argT = typeof(P);
+        public Task<IFeedback> Execute(Enum arg) {
+            var argT = arg.GetType();
             if (string.IsNullOrWhiteSpace(arg.Key) && arg is ParameterBase pb) {
                 if (_moduleAdapterKeys.ContainsKey(argT)) {
                     pb.Key = _moduleAdapterKeys[argT];

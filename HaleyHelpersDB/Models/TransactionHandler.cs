@@ -29,47 +29,62 @@ namespace Haley.Models
             SQLHandler.Begin(); //Do not return this object.
             return this; //Send this as the transaction.
         }
-        public P CreateDBInput<P>() where P: IModuleArgs,new() {
-            return CreateDBInput(new P());
+        public IModuleArgs CreateDBInput(Enum cmd) {
+            return CreateDBInput(cmd, new ModuleArgs());
         }
 
-        public P CreateDBInput<P>(P arg) where P : IModuleArgs {
+        public IModuleArgs CreateDBInput(Enum cmd, IParameterBase arg) {
             if (arg != null && arg is ModuleArgs argMP) {
-                argMP.Adapter = this;
+                argMP.Adapter = this; //Main purpose is to send this adapter to the executors.
                 argMP.TransactionMode = true;
+                return argMP;
             }
-            return arg;
+            return default(IModuleArgs);
         }
         void ValidateDBService(bool validateModule = false) {
             if (_dbs == null) throw new ArgumentNullException($@"DBService is not defined inside the Transaction Handler for executing this operation.");
             if (validateModule && _dbms == null) throw new ArgumentException($@"DB Module Service is not defined inside the Transaction Handler for executing this operation.");
         }
-        public IFeedback GetCommandStatus<P>(Enum cmd) where P : IModuleArgs {
+        public IFeedback GetCommandStatus(Enum cmd)  {
             ValidateDBService();
-            return _dbms.GetCommandStatus<P>(cmd);
+            return _dbms.GetCommandStatus(cmd);
         }
-        public IDBModule GetModule<P>() where P : IModuleArgs {
+        public IDBModule GetModule<E>() where E : Enum {
             ValidateDBService();
-            return _dbms.GetModule<P>();
+            return _dbms.GetModule<E>();
         }
-        public string GetAdapterKey<P>() where P : IModuleArgs {
+        public string GetAdapterKey<E>() where E : Enum {
             ValidateDBService();
-            return _dbms.GetAdapterKey<P>();
+            return _dbms.GetAdapterKey<E>();
+        }
+
+        public IDBModule GetModule(Type enumType){
+            ValidateDBService();
+            return _dbms.GetModule(enumType);
+        }
+        public string GetAdapterKey(Type enumType){
+            ValidateDBService();
+            return _dbms.GetAdapterKey(enumType);
         }
         public string GetAdapterKey() {
             ValidateDBService();
             return _dbms.GetAdapterKey();
         }
-        public Task<IFeedback> Execute<P>(P arg) where P : IModuleArgs {
+
+        public Task<IFeedback> Execute(Enum cmd, IParameterBase arg) {
             ValidateDBService();
             //Now, we need to attach the adapter to the argument.
             if (arg != null && arg is ModuleArgs argMP) {
                 argMP.Adapter = this;
-                argMP.Key = _dbms.GetAdapterKey<P>();
+                argMP.Key = _dbms.GetAdapterKey(cmd.GetType());
                 argMP.TransactionMode = true; //not required at all
             }
             //if required, we can also fetch the key and set here itself.
-            return _dbms.GetModule<P>().Execute(arg);
+            return _dbms.GetModule(cmd.GetType()).Execute(cmd,arg as IModuleArgs);
+        }
+
+        public Task<IFeedback> Execute(Enum cmd) {
+           return Execute(cmd, new ModuleArgs());
         }
 
         public TransactionHandler(IAdapterConfig entry): base(entry) {

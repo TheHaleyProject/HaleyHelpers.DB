@@ -4,7 +4,7 @@ using System.Collections.Concurrent;
 using System.Reflection;
 
 namespace Haley.Models {
-    public abstract class DBModule<DBArg> : DBModule, IDBModule<DBArg> where DBArg : IModuleArgs {
+    public abstract class DBModule<DBArg> : DBModule, IDBModule<DBArg> where DBArg : Enum {
         //protected ConcurrentDictionary<Enum,Func<P, Task<DBMResult>>> CmdDic = new ConcurrentDictionary<Enum, Func<P, Task<DBMResult>>>();
 
         public override async Task<IFeedback> Execute<P>(P parameter) {
@@ -36,7 +36,8 @@ namespace Haley.Models {
 
     public abstract class DBModule : IDBModule {
         protected ConcurrentDictionary<Enum, DBMExecuteDelegate> CmdDic = new ConcurrentDictionary<Enum, DBMExecuteDelegate>();
-        public abstract Task<IFeedback> Execute<P>(P parameter) where P:IModuleArgs;
+        public abstract Task<IFeedback> Execute<P>(P cmd) where P:Enum;
+        public abstract Task<IFeedback> Execute<P>(P cmd, Dictionary<string,object> parameters) where P:Enum;
         public Type ParameterType { get; private set; }
         protected Dictionary<string, object> Seed { get; set; } //Either set by inheritance or by internal services
         internal void SetParameterType(Type ptype) => ParameterType = ptype;
