@@ -4,15 +4,17 @@ using System.Collections.Concurrent;
 using System.Reflection;
 
 namespace Haley.Models {
-    public abstract class DBModule<DBArg> : DBModule, IDBModule<DBArg> where DBArg : Enum {
+    public abstract class DBModule<E> : DBModule, IDBModule<E> where E : Enum {
         //protected ConcurrentDictionary<Enum,Func<P, Task<DBMResult>>> CmdDic = new ConcurrentDictionary<Enum, Func<P, Task<DBMResult>>>();
-
-        public override async Task<IFeedback> Execute<P>(P parameter) {
-            if (parameter == null || parameter.Command == null) return new Feedback(false, "Input parameter and the Command property of Input parameter cannot be null");
-            if (!CmdDic.ContainsKey(parameter.Command)) return new Feedback(false, $@"Command {parameter.Command} is not registered.");
-            if (!parameter.GetType().IsAssignableFrom(typeof(DBArg))) return new Feedback(false,$@"Input parameter should be of type {typeof(DBArg)}");
+        public override async Task<IFeedback> Execute(Enum cmd) {
+            return await Execute(cmd, new ModuleArgs());
+        }
+        public override async Task<IFeedback> Execute(Enum cmd, IParameterBase args) {
+            if (args == null) return new Feedback(false, "Input parameter and the Command property of Input parameter cannot be null");
+            if (!CmdDic.ContainsKey(cmd)) return new Feedback(false, $@"Command {cmd} is not registered.");
+            //if (!parameter.GetType().IsAssignableFrom(typeof(E))) return new Feedback(false,$@"Input parameter should be of type {typeof(E)}");
             //return await CmdDic[parameter.Command].DynamicInvoke((P)parameter);
-            var result = CmdDic[parameter.Command].DynamicInvoke((P)parameter);
+            var result = CmdDic[cmd].DynamicInvoke((IModuleArgs)args);
             if (result is Task<IFeedback> task) {
                 return await task;
             }
@@ -36,8 +38,8 @@ namespace Haley.Models {
 
     public abstract class DBModule : IDBModule {
         protected ConcurrentDictionary<Enum, DBMExecuteDelegate> CmdDic = new ConcurrentDictionary<Enum, DBMExecuteDelegate>();
-        public abstract Task<IFeedback> Execute<P>(P cmd) where P:Enum;
-        public abstract Task<IFeedback> Execute<P>(P cmd, Dictionary<string,object> parameters) where P:Enum;
+        public abstract Task<IFeedback> Execute(Enum cmd);
+        public abstract Task<IFeedback> Execute(Enum cmd, IParameterBase args);
         public Type ParameterType { get; private set; }
         protected Dictionary<string, object> Seed { get; set; } //Either set by inheritance or by internal services
         internal void SetParameterType(Type ptype) => ParameterType = ptype;
@@ -62,10 +64,10 @@ namespace Haley.Models {
             return new Feedback(true);
         }
 
-        async Task<IFeedback> RegisterCommands(Type target) {
+        async Task<IFeedback> RegisterCommands(Type moduleTarget) {
             //For each type and their base level.
             List<string> failures = new List<string>();
-            var methods = target
+            var methods = moduleTarget
                     .GetMethods(BindingFlags.NonPublic | BindingFlags.Instance)
                     .Where(p => p.GetCustomAttribute<CMDAttribute>() != null); //Let us focus only on the private methods.
             foreach (var method in methods) {
@@ -88,8 +90,8 @@ namespace Haley.Models {
                 }
             }
 
-            if (target.BaseType != null) {
-                var deepRegister = await RegisterCommands(target.BaseType);
+            if (moduleTarget.BaseType != null) {
+                var deepRegister = await RegisterCommands(moduleTarget.BaseType);
                 if (!deepRegister.Status && deepRegister.Result is List<string> deepFailures) {
                     failures.AddRange(deepFailures);
                 }

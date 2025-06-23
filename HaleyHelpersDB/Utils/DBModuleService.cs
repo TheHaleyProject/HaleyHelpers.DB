@@ -160,18 +160,24 @@ namespace Haley.Utils {
         protected override IDBService GetDBService() {
             return this;
         }
-        public Task<IFeedback> Execute(Enum arg) {
-            var argT = arg.GetType();
-            if (string.IsNullOrWhiteSpace(arg.Key) && arg is ParameterBase pb) {
-                if (_moduleAdapterKeys.ContainsKey(argT)) {
-                    pb.Key = _moduleAdapterKeys[argT];
+
+        public Task<IFeedback> Execute(Enum cmd) {
+            return Execute(cmd, new ModuleArgs());
+        }
+
+        public Task<IFeedback> Execute(Enum cmd, IParameterBase arg) {
+            var cmdType = cmd.GetType(); //Get the type of the command to find the relevant module.
+
+            if (arg != null && string.IsNullOrWhiteSpace(arg.Key) && arg is ParameterBase pb) {
+                if (_moduleAdapterKeys.ContainsKey(cmdType)) {
+                    pb.Key = _moduleAdapterKeys[cmdType];
                 } else if (!string.IsNullOrWhiteSpace(_defaultAdapterKey)) {
                     pb.Key = _defaultAdapterKey;
                 } else {
                     throw new ArgumentNullException("Cannot execute without a default adapter key.");
                 }
             }
-            return GetModule<P>()?.Execute(arg) ?? Task.FromResult((IFeedback)new Feedback(false));
+            return GetModule(cmdType)?.Execute(cmd, arg) ?? Task.FromResult((IFeedback)new Feedback(false));
         }
         public DBModuleService(ILogger logger, bool autoConfigure = true):base(autoConfigure) {
             _logger = logger;
