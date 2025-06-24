@@ -11,13 +11,13 @@ using System.Threading.Tasks;
 namespace Haley.Utils
 {
     public static class DBExtensions{
-        public static IAdapterArgs Convert(this IParameterBase input) {
-            return input.Convert(string.Empty);
+        public static IAdapterArgs ToAdapterArgs(this IParameterBase input) {
+            return input.ToAdapterArgs(string.Empty);
         }
-        public static IAdapterArgs Convert(this IParameterBase input, string query) {
-            return input.Convert(query, string.Empty);
+        public static IAdapterArgs ToAdapterArgs(this IParameterBase input, string query) {
+            return input.ToAdapterArgs(query, string.Empty);
         }
-        public static IAdapterArgs Convert(this IParameterBase input, string query,string groupKey) {
+        public static IAdapterArgs ToAdapterArgs(this IParameterBase input, string query,string groupKey) {
             if (input == null) throw new ArgumentNullException($@"Input cannot be null for conversion");
             var db = new AdapterArgs(input.Key) { Query = query};
 

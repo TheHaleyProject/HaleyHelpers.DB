@@ -59,15 +59,17 @@ namespace Haley.Utils {
                 if (module == null) module = (IDBModule)Activator.CreateInstance(moduleType);
                 //Here, we start with Enum..
                 Type paramType = dbmInterface.GetGenericArguments().Where(
-                    p => p.GetInterfaces().Any(q => q.Name == $@"{nameof(Enum)}")
-                    ).FirstOrDefault() ?? module.ParameterType;
+                    p => p.BaseType == typeof(Enum))
+                    .FirstOrDefault() ?? module.ParameterType;
                 if (paramType == null) return new Feedback(false, $@"The type argument of {nameof(IDBModule)} should implement {nameof(Enum)}");
                 ////var cmdType = paramType.GetInterfaces()?.FirstOrDefault(p => p.IsGenericType && p.Name == $@"{nameof(IModuleParameter)}`1");
                 ////if (cmdType == null) return (false, $@"The type argument of {nameof(IDBModule)} should implement {nameof(IModuleParameter)} ");//Even after above step if we dont' get the parameter type, don't register it.
                 if (_modules.ContainsKey(paramType)) return new Feedback(false, $@"{paramType} is already registered.");
                 if (seed == null) seed = new Dictionary<string, object>();
-                if (!seed.ContainsKey("ms") || !seed["ms"].GetType().IsAssignableFrom(typeof(IModularGateway))) {
-                    seed.TryAdd("ms", this);
+
+                //mg as in 
+                if (!seed.ContainsKey("mod_gateway") || !seed["mod_gateway"].GetType().IsAssignableFrom(typeof(IModularGateway))) {
+                    seed.TryAdd("mod_gateway", this);
                 }
                 if (!seed.ContainsKey("logger") || seed["logger"].GetType().IsAssignableFrom(typeof(ILogger))) {
                     seed.TryAdd("logger", _logger);

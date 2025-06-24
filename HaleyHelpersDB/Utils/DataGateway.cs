@@ -28,7 +28,7 @@ namespace Haley.Utils {
         //    return this;
         //}
 
-        const string DBASTRING = "DBAStrings";
+        const string DBASTRING = "AdapterStrings";
         const string DBNAME_KEY = "database=";
         const string DBTYPE_KEY = "dbtype=";
         const string SEARCHPATH_KEY = "searchpath=";
@@ -269,15 +269,15 @@ namespace Haley.Utils {
         }
 
         public Task<object> Read(IParameterBase input, string query, params (string key, object value)[] parameters) {
-            return Read(input.Convert(query), parameters);
+            return Read(input.ToAdapterArgs(query), parameters);
         }
 
         public Task<object> Scalar(IParameterBase input, string query, params (string key, object value)[] parameters) {
-            return Scalar(input.Convert(query), parameters);
+            return Scalar(input.ToAdapterArgs(query), parameters);
         }
 
         public Task<object> NonQuery(IParameterBase input, string query, params (string key, object value)[] parameters) {
-            return NonQuery(input.Convert(query), parameters);
+            return NonQuery(input.ToAdapterArgs(query), parameters);
         }
 
         public async Task<object> Read(IAdapterArgs input,  params (string key, object value)[] parameters) {
