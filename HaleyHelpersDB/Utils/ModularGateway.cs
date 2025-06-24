@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Reflection;
 
 namespace Haley.Utils {
-    public class ModularGateway : DataGateway, IModularGateway {
+    public class ModularGateway : AdapterGateway, IModularGateway {
         ILogger _logger;
         ConcurrentDictionary<Type, IDBModule> _modules = new ConcurrentDictionary<Type, IDBModule>();
         ConcurrentDictionary<Type, string> _moduleAdapterKeys = new ConcurrentDictionary<Type, string>();
@@ -159,7 +159,7 @@ namespace Haley.Utils {
             result.Result = results;
             return result;
         }
-        protected override IDataGateway GetDBService() {
+        protected override IAdapterGateway GetDBService() {
             return this;
         }
 

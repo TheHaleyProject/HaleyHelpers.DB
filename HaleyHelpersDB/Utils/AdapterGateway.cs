@@ -12,7 +12,7 @@ namespace Haley.Utils {
     public delegate void DictionaryUpdatedEvent();
 
     //DB ADAPTER SERVICE
-    public class DataGateway : ConcurrentDictionary<string, IDBAdapter>, IDataGateway {
+    public class AdapterGateway : ConcurrentDictionary<string, IDBAdapter>, IAdapterGateway {
 
         //private static DBService _instance;
         //public static DBService Instance {
@@ -37,7 +37,7 @@ namespace Haley.Utils {
         IGatewayUtil _util;
 
         ConcurrentDictionary<string, (string cstr, TargetDB dbtype)> connectionstrings = new ConcurrentDictionary<string, (string cstr, TargetDB dbtype)>();
-        public DataGateway(bool autoConfigure = true) {
+        public AdapterGateway(bool autoConfigure = true) {
             //Id = Guid.NewGuid();
             if (autoConfigure) Configure();
         }
@@ -117,7 +117,7 @@ namespace Haley.Utils {
 
         #region Add or Generate Connections
 
-        public IDataGateway Configure() {
+        public IAdapterGateway Configure() {
             return Configure(false);
         }
 
@@ -131,7 +131,7 @@ namespace Haley.Utils {
             return this[adapterKey].Info.SchemaName;
         }
 
-        IDataGateway Configure(bool reload) {
+        IAdapterGateway Configure(bool reload) {
             ParseConnectionStrings(reload); //Load all latest connection string information into memory.
             if (connectionstrings == null) throw new ArgumentNullException(nameof(connectionstrings));
             //Supposed to read the json files and then generate all the adapters.
@@ -202,7 +202,7 @@ namespace Haley.Utils {
         }
         #endregion Add or Generate Connections
 
-        public IDataGateway Add(IAdapterConfig entry, bool replace = true) {
+        public IAdapterGateway Add(IAdapterConfig entry, bool replace = true) {
             var adapter = new DBAdapter(entry);
 
             if (!replace && ContainsKey(entry.AdapterKey)) return this;
@@ -232,12 +232,12 @@ namespace Haley.Utils {
             return _cfgRoot;
         }
 
-        public IDataGateway SetConfigurationRoot(string[] jsonPaths, string basePath = null) {
+        public IAdapterGateway SetConfigurationRoot(string[] jsonPaths, string basePath = null) {
             SetConfigurationRoot(ResourceUtils.GenerateConfigurationRoot(jsonPaths, basePath));
             return this;
         }
 
-        public IDataGateway SetConfigurationRoot(IConfigurationRoot cfgRoot) {
+        public IAdapterGateway SetConfigurationRoot(IConfigurationRoot cfgRoot) {
             if (cfgRoot == null) throw new ArgumentNullException(nameof(cfgRoot));
             _cfgRoot = cfgRoot;
             return this;
@@ -247,7 +247,7 @@ namespace Haley.Utils {
 
         #region Connection Utils Management
 
-        public IDataGateway UpdateAdapter() {
+        public IAdapterGateway UpdateAdapter() {
             Configure(true);
             Updated?.Invoke();
             return this;
@@ -256,7 +256,7 @@ namespace Haley.Utils {
 
         #region Execution
 
-        protected virtual IDataGateway GetDBService() { return this; }
+        protected virtual IAdapterGateway GetDBService() { return this; }
         public ITransactionHandler GetTransactionHandler(string adapterKey) {
             return new TransactionHandler(GetAdapterInfo(adapterKey)) {_dbs = GetDBService() }; 
         }

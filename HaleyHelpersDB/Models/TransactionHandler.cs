@@ -8,8 +8,8 @@ namespace Haley.Models
 {
     //Each connecton util is expected to contain one connection string within it.
     public class TransactionHandler : DBAdapter, ITransactionHandler {
-        IDataGateway _dbsVar;
-        internal IDataGateway _dbs { 
+        IAdapterGateway _dbsVar;
+        internal IAdapterGateway _dbs { 
             get { return _dbsVar; }
             set {
                 _dbsVar = value;
