@@ -8,18 +8,18 @@ namespace Haley.Models
 {
     //Each connecton util is expected to contain one connection string within it.
     public class TransactionHandler : DBAdapter, ITransactionHandler {
-        IDBService _dbsVar;
-        internal IDBService _dbs { 
+        IDataGateway _dbsVar;
+        internal IDataGateway _dbs { 
             get { return _dbsVar; }
             set {
                 _dbsVar = value;
-                if(value != null && value.GetType().GetInterfaces().Any(p=> p == typeof(IDBModuleService))){
+                if(value != null && value.GetType().GetInterfaces().Any(p=> p == typeof(IModularGateway))){
                     //if dbs is also a db module service, 
-                    _dbms = (IDBModuleService)value;
+                    _dbms = (IModularGateway)value;
                 }}
         } 
 
-        IDBModuleService _dbms;
+        IModularGateway _dbms;
         //This is nothing but a proxy, which also allows DBAdapter calls.
         public void Dispose() => SQLHandler.Dispose();
         //public void Dispose() { }
@@ -29,11 +29,11 @@ namespace Haley.Models
             SQLHandler.Begin(); //Do not return this object.
             return this; //Send this as the transaction.
         }
-        public IModuleArgs CreateDBInput(Enum cmd) {
-            return CreateDBInput(cmd, new ModuleArgs());
+        public IModuleArgs CreateDBInput() {
+            return CreateDBInput(new ModuleArgs());
         }
 
-        public IModuleArgs CreateDBInput(Enum cmd, IParameterBase arg) {
+        public IModuleArgs CreateDBInput(IParameterBase arg) {
             if (arg != null && arg is ModuleArgs argMP) {
                 argMP.Adapter = this; //Main purpose is to send this adapter to the executors.
                 argMP.TransactionMode = true;

@@ -45,7 +45,7 @@ namespace Haley.Models {
         internal void SetParameterType(Type ptype) => ParameterType = ptype;
         internal void SetSeed(Dictionary<string, object> seed) => Seed = seed ?? new Dictionary<string, object>();
         public event EventHandler<DBModuleInitializedArgs> ModuleInitialized;
-        protected IDBModuleService MS { get; set; }
+        protected IModularGateway MS { get; set; }
         protected ILogger Logger { get; set; }
         public bool IsInitialized { get; protected set; }
         protected virtual Task<IFeedback> InitializeInternal() { return Task.FromResult((IFeedback)new Feedback(true)); }
@@ -102,8 +102,8 @@ namespace Haley.Models {
 
         void SetServices() {
             //Since this is a virtual task, there is no guarantee that the initialization willb e completed here itself. It might take more steps to complete. So, donot set initialized here.
-            if (Seed == null) throw new Exception($@"Seed cannot be empty. It needs to contain at the least, {nameof(IDBModuleService)} mapped to key : ms");
-            if (Seed.ContainsKey("ms") && Seed["ms"] is IDBModuleService _ms) {
+            if (Seed == null) throw new Exception($@"Seed cannot be empty. It needs to contain at the least, {nameof(IModularGateway)} mapped to key : ms");
+            if (Seed.ContainsKey("ms") && Seed["ms"] is IModularGateway _ms) {
                 MS = _ms;
             } else {
                 throw new Exception("DB Service missing. Seed should contain IDBService against the key : dbs");

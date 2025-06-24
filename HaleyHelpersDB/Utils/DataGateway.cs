@@ -12,7 +12,7 @@ namespace Haley.Utils {
     public delegate void DictionaryUpdatedEvent();
 
     //DB ADAPTER SERVICE
-    public class DBService : ConcurrentDictionary<string, IDBAdapter>, IDBService {
+    public class DataGateway : ConcurrentDictionary<string, IDBAdapter>, IDataGateway {
 
         //private static DBService _instance;
         //public static DBService Instance {
@@ -34,10 +34,10 @@ namespace Haley.Utils {
         const string SEARCHPATH_KEY = "searchpath=";
 
         IConfigurationRoot _cfgRoot;
-        IDBServiceUtil _util;
+        IGatewayUtil _util;
 
         ConcurrentDictionary<string, (string cstr, TargetDB dbtype)> connectionstrings = new ConcurrentDictionary<string, (string cstr, TargetDB dbtype)>();
-        public DBService(bool autoConfigure = true) {
+        public DataGateway(bool autoConfigure = true) {
             //Id = Guid.NewGuid();
             if (autoConfigure) Configure();
         }
@@ -117,7 +117,7 @@ namespace Haley.Utils {
 
         #region Add or Generate Connections
 
-        public IDBService Configure() {
+        public IDataGateway Configure() {
             return Configure(false);
         }
 
@@ -131,7 +131,7 @@ namespace Haley.Utils {
             return this[adapterKey].Info.SchemaName;
         }
 
-        IDBService Configure(bool reload) {
+        IDataGateway Configure(bool reload) {
             ParseConnectionStrings(reload); //Load all latest connection string information into memory.
             if (connectionstrings == null) throw new ArgumentNullException(nameof(connectionstrings));
             //Supposed to read the json files and then generate all the adapters.
@@ -202,7 +202,7 @@ namespace Haley.Utils {
         }
         #endregion Add or Generate Connections
 
-        public IDBService Add(IAdapterConfig entry, bool replace = true) {
+        public IDataGateway Add(IAdapterConfig entry, bool replace = true) {
             var adapter = new DBAdapter(entry);
 
             if (!replace && ContainsKey(entry.AdapterKey)) return this;
@@ -232,12 +232,12 @@ namespace Haley.Utils {
             return _cfgRoot;
         }
 
-        public IDBService SetConfigurationRoot(string[] jsonPaths, string basePath = null) {
+        public IDataGateway SetConfigurationRoot(string[] jsonPaths, string basePath = null) {
             SetConfigurationRoot(ResourceUtils.GenerateConfigurationRoot(jsonPaths, basePath));
             return this;
         }
 
-        public IDBService SetConfigurationRoot(IConfigurationRoot cfgRoot) {
+        public IDataGateway SetConfigurationRoot(IConfigurationRoot cfgRoot) {
             if (cfgRoot == null) throw new ArgumentNullException(nameof(cfgRoot));
             _cfgRoot = cfgRoot;
             return this;
@@ -247,7 +247,7 @@ namespace Haley.Utils {
 
         #region Connection Utils Management
 
-        public IDBService UpdateAdapter() {
+        public IDataGateway UpdateAdapter() {
             Configure(true);
             Updated?.Invoke();
             return this;
@@ -256,7 +256,7 @@ namespace Haley.Utils {
 
         #region Execution
 
-        protected virtual IDBService GetDBService() { return this; }
+        protected virtual IDataGateway GetDBService() { return this; }
         public ITransactionHandler GetTransactionHandler(string adapterKey) {
             return new TransactionHandler(GetAdapterInfo(adapterKey)) {_dbs = GetDBService() }; 
         }
@@ -264,7 +264,7 @@ namespace Haley.Utils {
             if (string.IsNullOrWhiteSpace(adapterKey) || !ContainsKey(adapterKey)) throw new ArgumentNullException($@"Adapter key not registered {adapterKey}");
            return this[adapterKey].Info.Clone() as IAdapterConfig; //All connection strings properly parsed.
         }
-        public void SetServiceUtil(IDBServiceUtil util) {
+        public void SetServiceUtil(IGatewayUtil util) {
             _util = util;
         }
 

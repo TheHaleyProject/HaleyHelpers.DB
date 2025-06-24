@@ -15,9 +15,14 @@ namespace Haley.Utils
             return input.Convert(string.Empty);
         }
         public static IAdapterArgs Convert(this IParameterBase input, string query) {
+            return input.Convert(query, string.Empty);
+        }
+        public static IAdapterArgs Convert(this IParameterBase input, string query,string groupKey) {
             if (input == null) throw new ArgumentNullException($@"Input cannot be null for conversion");
             var db = new AdapterArgs(input.Key) { Query = query};
-            db.SetParameters(new Dictionary<string, object>(input.Parameters)); //since parameter set is protected.
+
+            db.SetParameters(new Dictionary<string, object>(string.IsNullOrWhiteSpace(groupKey) ? input.Parameters : input.GetGroupParameters(groupKey))); //since parameter set is protected.
+
             if (input is ModuleArgs mdp) {
                 db.Adapter = mdp.Adapter; //set the target
                 db.TransactionMode = mdp.TransactionMode;
@@ -38,8 +43,11 @@ namespace Haley.Utils
             return input;
         }
 
-        public static P ForHandler<P>(this IModuleArgs input, ITransactionHandler handler) where P: IModuleArgs {
-            return (P)handler.CreateDBInput(input);
+        public static P ForTransaction<P>(this IModuleArgs input, ITransactionHandler handler) where P: IModuleArgs {
+            return (P)ForTransaction(input, handler);
+        }
+        public static IModuleArgs ForTransaction(this IModuleArgs input, ITransactionHandler handler) {
+            return handler.CreateDBInput(input);
         }
     }
 }

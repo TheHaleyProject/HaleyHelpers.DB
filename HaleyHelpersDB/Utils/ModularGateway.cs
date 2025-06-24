@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Reflection;
 
 namespace Haley.Utils {
-    public class DBModuleService : DBService, IDBModuleService {
+    public class ModularGateway : DataGateway, IModularGateway {
         ILogger _logger;
         ConcurrentDictionary<Type, IDBModule> _modules = new ConcurrentDictionary<Type, IDBModule>();
         ConcurrentDictionary<Type, string> _moduleAdapterKeys = new ConcurrentDictionary<Type, string>();
@@ -66,7 +66,7 @@ namespace Haley.Utils {
                 ////if (cmdType == null) return (false, $@"The type argument of {nameof(IDBModule)} should implement {nameof(IModuleParameter)} ");//Even after above step if we dont' get the parameter type, don't register it.
                 if (_modules.ContainsKey(paramType)) return new Feedback(false, $@"{paramType} is already registered.");
                 if (seed == null) seed = new Dictionary<string, object>();
-                if (!seed.ContainsKey("ms") || !seed["ms"].GetType().IsAssignableFrom(typeof(IDBModuleService))) {
+                if (!seed.ContainsKey("ms") || !seed["ms"].GetType().IsAssignableFrom(typeof(IModularGateway))) {
                     seed.TryAdd("ms", this);
                 }
                 if (!seed.ContainsKey("logger") || seed["logger"].GetType().IsAssignableFrom(typeof(ILogger))) {
@@ -157,7 +157,7 @@ namespace Haley.Utils {
             result.Result = results;
             return result;
         }
-        protected override IDBService GetDBService() {
+        protected override IDataGateway GetDBService() {
             return this;
         }
 
@@ -179,9 +179,9 @@ namespace Haley.Utils {
             }
             return GetModule(cmdType)?.Execute(cmd, arg) ?? Task.FromResult((IFeedback)new Feedback(false));
         }
-        public DBModuleService(ILogger logger, bool autoConfigure = true):base(autoConfigure) {
+        public ModularGateway(ILogger logger, bool autoConfigure = true):base(autoConfigure) {
             _logger = logger;
         }
-        public DBModuleService() : this(null,true) { }
+        public ModularGateway() : this(null,true) { }
     }
 }
