@@ -143,7 +143,7 @@ namespace Haley.Utils {
                 foreach (var kvp in dbastrings.GetChildren()) {
                     try {
                         if (string.IsNullOrWhiteSpace(kvp.Value)) continue;
-                        var aconfig = kvp.Value.DictionaryConvert().Map<AdapterConfig>();
+                        var aconfig = kvp.Value.ToDictionarySplit().Map<AdapterConfig>();
                         aconfig.DBAString = kvp.Value;
                         aconfig.AdapterKey = kvp.Key;
                         adapters.Add(aconfig);

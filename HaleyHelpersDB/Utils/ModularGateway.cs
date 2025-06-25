@@ -167,7 +167,7 @@ namespace Haley.Utils {
             return Execute(cmd, new ModuleArgs());
         }
 
-        public Task<IFeedback> Execute(Enum cmd, IParameterBase arg) {
+        public Task<IFeedback> Execute(Enum cmd, IModuleArgs arg) {
             var cmdType = cmd.GetType(); //Get the type of the command to find the relevant module.
 
             if (arg != null && string.IsNullOrWhiteSpace(arg.Key) && arg is ParameterBase pb) {

@@ -33,7 +33,7 @@ namespace Haley.Models
             return CreateDBInput(new ModuleArgs());
         }
 
-        public IModuleArgs CreateDBInput(IParameterBase arg) {
+        public IModuleArgs CreateDBInput(IModuleArgs arg) {
             if (arg != null && arg is ModuleArgs argMP) {
                 argMP.Adapter = this; //Main purpose is to send this adapter to the executors.
                 argMP.TransactionMode = true;
@@ -71,7 +71,7 @@ namespace Haley.Models
             return _dbms.GetAdapterKey();
         }
 
-        public Task<IFeedback> Execute(Enum cmd, IParameterBase arg) {
+        public Task<IFeedback> Execute(Enum cmd, IModuleArgs arg) {
             ValidateDBService();
             //Now, we need to attach the adapter to the argument.
             if (arg != null && arg is ModuleArgs argMP) {

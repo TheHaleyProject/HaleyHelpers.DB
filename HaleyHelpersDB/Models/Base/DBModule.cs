@@ -9,7 +9,7 @@ namespace Haley.Models {
         public override async Task<IFeedback> Execute(Enum cmd) {
             return await Execute(cmd, new ModuleArgs());
         }
-        public override async Task<IFeedback> Execute(Enum cmd, IParameterBase args) {
+        public override async Task<IFeedback> Execute(Enum cmd, IModuleArgs args) {
             if (args == null) return new Feedback(false, "Input parameter and the Command property of Input parameter cannot be null");
             if (!CmdDic.ContainsKey(cmd)) return new Feedback(false, $@"Command {cmd} is not registered.");
             //if (!parameter.GetType().IsAssignableFrom(typeof(E))) return new Feedback(false,$@"Input parameter should be of type {typeof(E)}");
@@ -39,7 +39,7 @@ namespace Haley.Models {
     public abstract class DBModule : IDBModule {
         protected ConcurrentDictionary<Enum, DBMExecuteDelegate> CmdDic = new ConcurrentDictionary<Enum, DBMExecuteDelegate>();
         public abstract Task<IFeedback> Execute(Enum cmd);
-        public abstract Task<IFeedback> Execute(Enum cmd, IParameterBase args);
+        public abstract Task<IFeedback> Execute(Enum cmd, IModuleArgs args);
         public Type ParameterType { get; private set; }
         protected Dictionary<string, object> Seed { get; set; } //Either set by inheritance or by internal services
         internal void SetParameterType(Type ptype) => ParameterType = ptype;
