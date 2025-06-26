@@ -35,7 +35,7 @@ namespace Haley.Models
 
         public IModuleArgs CreateDBInput(IModuleArgs arg) {
             if (arg != null && arg is ModuleArgs argMP) {
-                argMP.Adapter = this; //Main purpose is to send this adapter to the executors.
+                argMP.Adapter = this; //Main purpose is to send same adapter to the executors so that the transaction can be achieved.
                 argMP.TransactionMode = true;
                 return argMP;
             }
@@ -75,7 +75,7 @@ namespace Haley.Models
             ValidateDBService();
             //Now, we need to attach the adapter to the argument.
             if (arg != null && arg is ModuleArgs argMP) {
-                argMP.Adapter = this;
+                argMP.Adapter = this; //Main purpose is to send same adapter to the executors so that the transaction can be achieved.
                 argMP.Key = _dbms.GetAdapterKey(cmd.GetType());
                 argMP.TransactionMode = true; //not required at all
             }
