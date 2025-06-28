@@ -12,6 +12,7 @@ using System.Runtime.CompilerServices;
 namespace Haley.Models {
 
     internal class PgsqlHandler : SqlHandlerBase {
+        static Dictionary<string, NpgsqlDataSource> _dataSources = new Dictionary<string, NpgsqlDataSource>();
         protected override string ProviderName { get; } = "PGSQL";
         public PgsqlHandler(string constring) : base(constring) { }
         //NpgsqlDataSource.Create(input.Conn)
@@ -38,8 +39,12 @@ namespace Haley.Models {
         protected override object GetConnection(string conStr, bool forTransaction) {
             //if (TransactionMode) return NpgsqlDataSource.Create(conStr).CreateConnection();
             if (_transaction != null) return _connection; //use the same connection 
-            if (forTransaction) return NpgsqlDataSource.Create(conStr).CreateConnection();
-            return NpgsqlDataSource.Create(conStr); //This will automanage everything internally
+            //if (forTransaction) {
+               
+            //}
+
+            if (!_dataSources.ContainsKey(conStr)) _dataSources.Add(conStr, NpgsqlDataSource.Create(conStr));
+            return _dataSources[conStr].CreateConnection();
         }
 
         protected override IDbDataParameter GetParameter() {

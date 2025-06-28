@@ -1,16 +1,30 @@
 ﻿using Haley.Abstractions;
 using Haley.Enums;
 using Haley.Models;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.NetworkInformation;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace Haley.Utils
 {
     public static class DBExtensions{
+        public static IAdapterArgs SetFilter(this IAdapterArgs args,ResultFilter filter) {
+            if (args == null) return args;
+            args.Filter = filter;
+            return args;
+        }
+
+        public static IAdapterArgs SetOutputName(this IAdapterArgs args, string output_name) {
+            if (args == null) return args;
+            args.OutputName = output_name;
+            return args;
+        }
+
         public static IAdapterArgs ToAdapterArgs(this IParameterBase input) {
             return input.ToAdapterArgs(string.Empty);
         }
@@ -35,12 +49,6 @@ namespace Haley.Utils
             AdapterConfig result = new AdapterConfig();
             
             return result;
-        }
-
-        public static IAdapterArgs Add(this IAdapterArgs input, ResultFilter filter) {
-            if (input == null) throw new ArgumentNullException($@"Input Parameter cannot be null");
-            input.Filter = filter;
-            return input;
         }
 
         public static P ForTransaction<P>(this IModuleArgs input, ITransactionHandler handler) where P: IModuleArgs {
