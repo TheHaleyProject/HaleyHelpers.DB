@@ -152,31 +152,70 @@ namespace Haley.Models {
                 if (input.Prepare) {
                     await cmd.PrepareAsync();
                 }
-
-                var reader = await cmd.ExecuteReaderAsync();
-
                 DataSet ds = new DataSet();
-                int count = 1;
 
-                if (reader == null) return null;
+                using (var reader = await cmd.ExecuteReaderAsync()) {
+                    int count = 1;
+                    //if (reader == null) return null;
+                    //Don't load the first one directly. It will not capture other results.
+                    do {
+                        //await reader.ReadAsync();
 
-                //Don't load the first one directly. It will not capture other results.
-                while (!reader.IsClosed) {
-                    //await reader.ReadAsync();
-                    //Read all tables and return the final one.
-                    DataTable dt = new DataTable();
-                    dt.Load(reader);
-                    //todo: put them inside a dataset and return
-                    ds.Tables.Add(dt);
-                    input.Logger?.LogInformation($@"For query {input.Query} - : Table Count - {count} created.");
-                    count++;
+                        //Read all tables and return the final one.
+                        //DataTable dt = new DataTable();
+                        //dt.Load(reader); //Load normalized Reader
+                        DataTable dt = LoadNormalizedTable(reader); //Load normalized Reader
+                        ds.Tables.Add(dt);
+                        input.Logger?.LogInformation($@"For query {input.Query} - : Table Count - {count} created.");
+                        count++;
+                    } while (reader.NextResult());
                 }
-                await reader.CloseAsync();
                 return ds; //Only return dataset
             }, parameters);
 
             return result as DataSet;
         }
+
+        public DataTable LoadNormalizedTable(IDataReader reader) {
+            var table = new DataTable();
+
+            for (int i = 0; i < reader.FieldCount; i++) {
+                var columnType = reader.GetFieldType(i);
+                var columnName = reader.GetName(i);
+
+                // Normalize PostgreSQL bit(n) to string for readability
+                if (columnType == typeof(BitArray) &&
+                    reader.GetDataTypeName(i).StartsWith("bit", StringComparison.OrdinalIgnoreCase)) {
+                    table.Columns.Add(columnName, typeof(string));
+                } else {
+                    table.Columns.Add(columnName, columnType);
+                }
+            }
+
+            while (reader.Read()) {
+                var row = table.NewRow();
+                for (int i = 0; i < reader.FieldCount; i++) {
+                    var value = reader.GetValue(i);
+
+                    if (value is BitArray ba) {
+                        // Convert BitArray to string like "101"
+                        var bits = new char[ba.Length];
+                        for (int b = 0; b < ba.Length; b++) {
+                            bits[b] = ba[b] ? '1' : '0';
+                        }
+
+                        row[i] = new string(bits);
+                    } else {
+                        row[i] = value is DBNull ? DBNull.Value : value;
+                    }
+                }
+                table.Rows.Add(row);
+            }
+
+            return table;
+        }
+
+
 
         public async Task<object> Scalar(IAdapterArgs input, params (string key, object value)[] parameters) {
             return await ExecuteInternal(input, async (dbc) => {

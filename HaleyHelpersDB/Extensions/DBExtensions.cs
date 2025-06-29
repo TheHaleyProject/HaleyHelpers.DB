@@ -25,6 +25,13 @@ namespace Haley.Utils
             return args;
         }
 
+        public static IAdapterArgs ToAdapterArgs(this Dictionary<string,object> input,string adapterKey, string query) {
+            if (input == null || input.Count == 0) throw new ArgumentNullException($@"Input cannot be null or empty for conversion");
+            var db = new AdapterArgs(adapterKey) { Query = query };
+            db.SetParameters(input);
+            return db;
+        }
+
         public static IAdapterArgs ToAdapterArgs(this IParameterBase input) {
             return input.ToAdapterArgs(string.Empty);
         }
