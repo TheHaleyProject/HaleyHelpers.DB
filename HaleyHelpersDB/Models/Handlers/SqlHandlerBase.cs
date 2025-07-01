@@ -34,9 +34,12 @@ namespace Haley.Models {
         }
         protected abstract object GetConnection(string conStr, bool forTransaction = false);
         protected virtual IDbCommand GetCommand(object connection) {
-            if (IsConnectionWrapped(connection)) return CreateWrappedCommand(connection);
-            if (connection is DbConnection dbc) return dbc.CreateCommand();
-            throw new ArgumentException($@"Unable to create command for the given connection type : {connection.GetType()}");
+            IDbCommand cmd = null;
+            if (IsConnectionWrapped(connection)) cmd = CreateWrappedCommand(connection);
+            if (connection is DbConnection dbc) cmd = dbc.CreateCommand();
+            if (cmd == null) throw new ArgumentException($@"Unable to create command for the given connection type : {connection.GetType()}");
+            if (_transaction != null) cmd.Transaction = _transaction;
+            return cmd;
         }
         protected abstract IDbDataParameter GetParameter();
         protected virtual void FillParameters(IDbCommand cmd, IAdapterArgs input, params (string key, object value)[] parameters) {
