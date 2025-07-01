@@ -32,6 +32,12 @@ namespace Haley.Utils
             return db;
         }
 
+        public static IModuleArgs ToModuleArgs(this Dictionary<string, object> input) {
+            if (input == null || input.Count == 0) throw new ArgumentNullException($@"Input cannot be null or empty for conversion");
+            var db = new ModuleArgs().SetParameters(input);
+            return db;
+        }
+
         public static IAdapterArgs ToAdapterArgs(this IParameterBase input) {
             return input.ToAdapterArgs(string.Empty);
         }
