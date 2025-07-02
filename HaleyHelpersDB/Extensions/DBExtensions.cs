@@ -70,5 +70,16 @@ namespace Haley.Utils
         public static IModuleArgs ForTransaction(this IModuleArgs input, ITransactionHandler handler) {
             return handler.CreateDBInput(input);
         }
+
+        public static IAdapterArgs ForTransaction(this IAdapterArgs input, ITransactionHandler handler) {
+            if (input is AdapterArgs db && handler is TransactionHandler th) {
+                db.Adapter = th; //set the target
+                db.TransactionMode = true;
+            }
+            return input;
+        }
+        public static P ForTransaction<P>(this IAdapterArgs input, ITransactionHandler handler) where P : IAdapterArgs{
+            return (P)ForTransaction(input, handler);
+        }
     }
 }
