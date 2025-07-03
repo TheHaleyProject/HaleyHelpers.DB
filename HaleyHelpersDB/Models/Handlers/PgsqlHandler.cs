@@ -8,11 +8,12 @@ using Microsoft.Data.SqlClient;
 using System.Data.Common;
 using NpgsqlTypes;
 using System.Runtime.CompilerServices;
+using System.Collections.Concurrent;
 
 namespace Haley.Models {
 
     internal class PgsqlHandler : SqlHandlerBase {
-        static Dictionary<string, NpgsqlDataSource> _dataSources = new Dictionary<string, NpgsqlDataSource>();
+        static ConcurrentDictionary<string, NpgsqlDataSource> _dataSources = new ConcurrentDictionary<string, NpgsqlDataSource>();
         protected override string ProviderName { get; } = "PGSQL";
         public PgsqlHandler(string constring) : base(constring) { }
         //NpgsqlDataSource.Create(input.Conn)
@@ -43,7 +44,7 @@ namespace Haley.Models {
                
             //}
 
-            if (!_dataSources.ContainsKey(conStr)) _dataSources.Add(conStr, NpgsqlDataSource.Create(conStr));
+            if (!_dataSources.ContainsKey(conStr)) _dataSources.TryAdd(conStr, NpgsqlDataSource.Create(conStr));
             return _dataSources[conStr].CreateConnection();
         }
 
