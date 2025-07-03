@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 namespace Haley.Models {
     public class AdapterArgs : ParameterBase, IAdapterArgs {
         internal IDBAdapter Adapter { get; set; }
-        internal void SetParameters(Dictionary<string, object> parameters) => SetParametersInternal(parameters);
+       
         public ResultFilter Filter { get; set; }
         public string Query { get; set; }
         public ILogger  Logger { get; set; }
@@ -17,6 +17,24 @@ namespace Haley.Models {
         public bool TransactionMode { get; set; }
         public IAdapterArgs SetAdapterKey(string key) {
             Key = key;
+            return this;
+        }
+
+        public IAdapterArgs SetParameters(Dictionary<string, object> parameters) {
+             SetParametersInternal(parameters);
+            return this;
+        }
+
+        public IAdapterArgs UpsertParameter(string key, object value, bool replace = true) {
+            AddParameterInternal(key, value, replace);
+            return this;
+        }
+        public IAdapterArgs UpsertParameter(string groupKey, string key, object value, bool replace = true) {
+            AddParameterInternal(groupKey, key, value, replace);
+            return this;
+        }
+        public IAdapterArgs SetParameters(string groupKey, Dictionary<string, object> parameters) {
+            SetParametersInternal(groupKey, parameters);
             return this;
         }
         public AdapterArgs(string key) :base (key){

@@ -128,8 +128,12 @@ namespace Haley.Utils {
             return TryRegisterAssembly(Assembly.GetCallingAssembly(), defaultAdapterKey); // From wherever we try to call the registration.
         }
 
-        public Task<IFeedback> TryRegisterAssembly<T>(string defaultAdapterKey = null) where T: Type {
-            return TryRegisterAssembly(typeof(T).Assembly, defaultAdapterKey); // From wherever we try to call the registration.
+        public Task<IFeedback> TryRegisterAssembly<T>(string defaultAdapterKey = null) where T : class {
+            return TryRegisterAssembly(typeof(T), defaultAdapterKey); // From wherever we try to call the registration.
+        }
+
+        public Task<IFeedback> TryRegisterAssembly(Type type,string defaultAdapterKey = null)  {
+            return TryRegisterAssembly(type.Assembly, defaultAdapterKey); // From wherever we try to call the registration.
         }
 
         public async Task<IFeedback> TryRegisterAssembly(Assembly assembly,string defaultAdapterKey = null) {
