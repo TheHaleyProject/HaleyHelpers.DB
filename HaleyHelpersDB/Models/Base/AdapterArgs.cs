@@ -8,6 +8,7 @@ namespace Haley.Models {
        
         public ResultFilter Filter { get; set; }
         public string Query { get; set; }
+        public bool ExcludeDBInConString { get; set; }
         public ILogger  Logger { get; set; }
         internal bool ReturnsResult { get; set; }
         internal bool IsScalar { get; set; }

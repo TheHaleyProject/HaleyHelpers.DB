@@ -13,6 +13,7 @@ namespace Haley.Models {
         public string AdapterKey { get; set; }
         [OtherNames("key")]
         public string ConnectionKey { get; set; }
+        [OtherNames("database")]
         public string DBName { get; set; }
         public TargetDB DBType { get; set; }
         [OtherNames("schema")]

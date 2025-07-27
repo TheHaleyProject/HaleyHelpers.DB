@@ -94,9 +94,15 @@ namespace Haley.Models {
 
         public virtual async Task<object> ExecuteInternal(IAdapterArgs input, Func<IDbCommand, Task<object>> processor, params (string key, object value)[] parameters) {
             if (!(input is AdapterArgs)) throw new ArgumentException($@"Input is not derived from {nameof(AdapterArgs)}. Cannot obtain the connection string information.");
-            var conn = GetConnection(_conString);
+            var targetConStr = _conString;
+            if (input.ExcludeDBInConString) {
+                //Which means we are trying to do something without the database information.
+                //Now, in this we need to remove the database information. Because we are only trying to run the operation at the connection level. May be we are trying to create the database here.
+                targetConStr = _conString.RemoveKeys(';', "database");
+            }
+            var conn = GetConnection(targetConStr);
             //INITIATE CONNECTION
-            input.Logger?.LogInformation($@"Opening connection - {_conString}");
+            input.Logger?.LogInformation($@"Opening connection - {targetConStr}");
             //conn.Open();
             if (input.TransactionMode) {
                 if (_transaction == null)throw new ArgumentNullException("This SQL Handler will work only inside a transaction. Transaction appears to be null. Please verify if you have disposed or closed the transaction object.");
