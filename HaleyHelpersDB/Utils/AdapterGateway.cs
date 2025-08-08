@@ -36,7 +36,7 @@ namespace Haley.Utils {
         IConfigurationRoot _cfgRoot;
         IGatewayUtil _util;
 
-        ConcurrentDictionary<string, (string cstr, TargetDB dbtype)> connectionstrings = new ConcurrentDictionary<string, (string cstr, TargetDB dbtype)>();
+        ConcurrentDictionary<string, (string conStr, TargetDB dbtype)> connectionstrings = new ConcurrentDictionary<string, (string cstr, TargetDB dbtype)>();
         public AdapterGateway(bool autoConfigure = true) {
             //Id = Guid.NewGuid();
             if (autoConfigure) Configure();
@@ -158,7 +158,7 @@ namespace Haley.Utils {
                     if (connectionstrings.TryGetValue(entry.ConnectionKey, out var connectionData)) {
                         entry.DBType = connectionData.dbtype;
                         //If user didn't specify dbname , then take it from the connectionstring itself.
-                        var constr = connectionData.cstr;
+                        var constr = connectionData.conStr;
                         if (!string.IsNullOrWhiteSpace(entry.DBName)) {
                             //replace this name in the connection string.
                             constr = ReplaceParameter(constr, DBNAME_KEY, entry.DBName);
@@ -218,6 +218,22 @@ namespace Haley.Utils {
                 return this; //Trying to add the key and adapter here
             }
             throw new ArgumentException("Unable to add DBAdapter to dictionary.");
+        }
+
+        public IFeedback DuplicateAdapter(string existingAdapterKey, string newAdapterKey, params (string key, string value)[] connectionStringReplacements) { 
+            existingAdapterKey.AssertValue(true);
+            newAdapterKey.AssertValue(true);
+            var result = new Feedback(false);
+            if (ContainsKey(newAdapterKey)) return result.SetMessage($@"Adapter with key {newAdapterKey} is already registered"); //Already exists.
+            if (!ContainsKey(existingAdapterKey)) result.SetMessage($@"No adapter is registered for the key {existingAdapterKey}"); //Already exists.
+            var existing = this[existingAdapterKey];
+            var infoClone = (IAdapterConfig)existing.Info.Clone();
+            var newConStr = infoClone.ConnectionString.ReplaceValues(';', connectionStringReplacements);
+            infoClone.AdapterKey = newAdapterKey;
+            infoClone.ConnectionString = newConStr;
+            infoClone.DBName = ParseConnectionString(newConStr, DBNAME_KEY);
+            Add(infoClone, true);
+            return result.SetStatus(true);
         }
 
         #region Configuration Root Management
