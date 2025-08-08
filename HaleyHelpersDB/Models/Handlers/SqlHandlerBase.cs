@@ -1,18 +1,21 @@
-﻿using Microsoft.Extensions.Logging;
-using Npgsql;
-using System.Data;
-using System.Text.RegularExpressions;
+﻿using Haley.Abstractions;
 using Haley.Utils;
-using Haley.Abstractions;
-using System.Data.Common;
-using MySqlConnector;
-using Microsoft.Data.Sqlite;
 using Microsoft.Data.SqlClient;
+using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.Logging;
+using MySqlConnector;
+using Npgsql;
+using NpgsqlTypes;
+using System;
 using System.Collections;
 using System.Collections.Concurrent;
-using System;
-using NpgsqlTypes;
+using System.Collections.Generic;
+using System.Data;
+using System.Data.Common;
+using System.Diagnostics;
+using System.Reflection.Metadata.Ecma335;
 using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 
 namespace Haley.Models {
 
@@ -110,12 +113,25 @@ namespace Haley.Models {
                 await dbc1.OpenAsync(); //For pgsql, we don't do this. It is done by NPGSQL source
             }
 
-            IDbCommand cmd = GetCommand(conn);
-            cmd.CommandText = input.Query;
-            input.Logger?.LogInformation("Creating query");
-            FillParameters(cmd, input, parameters);
-            input.Logger?.LogInformation("About to execute");
-            var result = await processor.Invoke(cmd);
+            object result = null;
+
+            if (input.Query is string qryStr) {
+                IDbCommand cmd = GetCommand(conn);
+                cmd.CommandText = qryStr;
+                input.Logger?.LogInformation($@"Creating query {qryStr}");
+                FillParameters(cmd, input, parameters);
+                input.Logger?.LogInformation("About to execute");
+                result = await processor.Invoke(cmd);
+            } else if(input.Query is string[] queries) {
+                foreach (var stmt in queries) {
+                    string trimmed = stmt.Trim();
+                    if (string.IsNullOrWhiteSpace(trimmed)) continue; //May be a mistake.
+                    IDbCommand cmd = GetCommand(conn);
+                    cmd.CommandText = trimmed;
+                    input.Logger?.LogInformation($@"Creating query - {trimmed}");
+                    await processor.Invoke(cmd);
+                }
+            }
 
             if (!input.TransactionMode && conn is DbConnection dbc2) await dbc2.CloseAsync();
             input.Logger?.LogInformation("Connection closed");
