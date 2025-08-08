@@ -25,8 +25,8 @@ namespace Haley.Models
         //public void Dispose() { }
         public void Commit() => SQLHandler.Commit();
         public void Rollback() => SQLHandler.Rollback();
-        public IDBTransaction Begin() {
-            SQLHandler.Begin(); //Do not return this object.
+        public IDBTransaction Begin(bool ExcludeDBInConnectionString = false) {
+            SQLHandler.Begin(ExcludeDBInConnectionString); //Do not return this object.
             return this; //Send this as the transaction.
         }
         public IModuleArgs CreateDBInput() {

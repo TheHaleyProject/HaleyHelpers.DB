@@ -263,9 +263,15 @@ namespace Haley.Models {
             }
         }
 
-        public IDBTransaction Begin() {
+        public IDBTransaction Begin(bool ExcludeDBInConnectionString = false) {
             if (_transaction != null) throw new Exception("A transaction is already opened. Please commit/rollback the existing transaction.");
-            _connection = (DbConnection)GetConnection(_conString,true);
+            var constring = _conString;
+            if (ExcludeDBInConnectionString) {
+                //Which means we are trying to do something without the database information.
+                //Now, in this we need to remove the database information. Because we are only trying to run the operation at the connection level. May be we are trying to create the database here.
+                constring = _conString.RemoveKeys(';', "database");
+            }
+            _connection = (DbConnection)GetConnection(constring, true);
             Task.WaitAny(_connection.OpenAsync());
             //After we get the connection, we generate the transaction.
             _transaction = _connection.BeginTransactionAsync().Result;
