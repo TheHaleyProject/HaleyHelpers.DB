@@ -42,6 +42,7 @@ namespace Haley.Utils {
             if (autoConfigure) Configure();
         }
 
+        public bool IsDevelopment { get; protected set; }
         public Guid Id { get; } = Guid.NewGuid();
 
         public bool ThrowCRUDExceptions { get; set; }
