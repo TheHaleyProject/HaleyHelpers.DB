@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Reflection;
+using System.Security.Cryptography.Xml;
 
 namespace Haley.Models {
     public abstract class DBModule<E> : DBModule, IDBModule<E> where E : Enum {
@@ -11,11 +12,14 @@ namespace Haley.Models {
         }
         public override async Task<IFeedback> Execute(Enum cmd, IModuleArgs args) {
             try {
-                if (args == null) return new Feedback(false, "Input parameter and the Command property of Input parameter cannot be null");
                 if (!CmdDic.ContainsKey(cmd)) return new Feedback(false, $@"Command {cmd} is not registered.");
+                bool argsRequired = true;
+                if (CMDParamsState.ContainsKey(cmd)) argsRequired = CMDParamsState[cmd];
+                if (argsRequired && args == null) return new Feedback(false, "Input parameter and the Command property of Input parameter cannot be null");
                 //if (!parameter.GetType().IsAssignableFrom(typeof(E))) return new Feedback(false,$@"Input parameter should be of type {typeof(E)}");
                 //return await CmdDic[parameter.Command].DynamicInvoke((P)parameter);
-                var result = CmdDic[cmd].DynamicInvoke((IModuleArgs)args);
+                var margs = args == null ? null : (IModuleArgs)args;
+                var result = CmdDic[cmd].DynamicInvoke(margs);
                 if (result is Task<IFeedback> task) {
                     return await task;
                 }
@@ -42,6 +46,7 @@ namespace Haley.Models {
 
     public abstract class DBModule : IDBModule {
         protected ConcurrentDictionary<Enum, DBMExecuteDelegate> CmdDic = new ConcurrentDictionary<Enum, DBMExecuteDelegate>();
+        protected ConcurrentDictionary<Enum, bool> CMDParamsState = new ConcurrentDictionary<Enum, bool>();
         public abstract Task<IFeedback> Execute(Enum cmd);
         public abstract Task<IFeedback> Execute(Enum cmd, IModuleArgs args);
         public Type ParameterType { get; private set; }
@@ -87,6 +92,7 @@ namespace Haley.Models {
                     //Instead of storing as MethodInfo, it is better to generate the delegate and call this, as the overhead and reflection time is less during runtime.
                     if (CmdDic.ContainsKey(@cmd)) throw new Exception($@"{@cmd} for method {method.DeclaringType?.Name}-{method.Name}. The command is already registered to method {CmdDic[@cmd].Method?.Name}");
                     CmdDic.TryAdd(@cmd, (DBMExecuteDelegate)Delegate.CreateDelegate(typeof(DBMExecuteDelegate), this, method.Name));
+                    CMDParamsState.TryAdd(@cmd, cmdattr.ParametersRequired);
                 } catch (Exception ex) {
                     Logger?.LogError(ex.Message);
                     failures.Add(ex.Message);
