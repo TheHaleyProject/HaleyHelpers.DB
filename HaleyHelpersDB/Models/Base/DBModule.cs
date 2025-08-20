@@ -10,15 +10,19 @@ namespace Haley.Models {
             return await Execute(cmd, new ModuleArgs());
         }
         public override async Task<IFeedback> Execute(Enum cmd, IModuleArgs args) {
-            if (args == null) return new Feedback(false, "Input parameter and the Command property of Input parameter cannot be null");
-            if (!CmdDic.ContainsKey(cmd)) return new Feedback(false, $@"Command {cmd} is not registered.");
-            //if (!parameter.GetType().IsAssignableFrom(typeof(E))) return new Feedback(false,$@"Input parameter should be of type {typeof(E)}");
-            //return await CmdDic[parameter.Command].DynamicInvoke((P)parameter);
-            var result = CmdDic[cmd].DynamicInvoke((IModuleArgs)args);
-            if (result is Task<IFeedback> task) {
-                return await task;
+            try {
+                if (args == null) return new Feedback(false, "Input parameter and the Command property of Input parameter cannot be null");
+                if (!CmdDic.ContainsKey(cmd)) return new Feedback(false, $@"Command {cmd} is not registered.");
+                //if (!parameter.GetType().IsAssignableFrom(typeof(E))) return new Feedback(false,$@"Input parameter should be of type {typeof(E)}");
+                //return await CmdDic[parameter.Command].DynamicInvoke((P)parameter);
+                var result = CmdDic[cmd].DynamicInvoke((IModuleArgs)args);
+                if (result is Task<IFeedback> task) {
+                    return await task;
+                }
+                return new Feedback(false, "Unable to invoke the delegate command");
+            } catch (Exception ex) {
+                return new Feedback(false, ex.Message);
             }
-            return new Feedback(false, "Unable to invoke the delegate command");
         }
 
         //NEVER USE THE BELOW METHOD. ONLY USE PARAMETERIZED QUERY.
