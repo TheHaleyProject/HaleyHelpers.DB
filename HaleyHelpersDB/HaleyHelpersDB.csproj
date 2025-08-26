@@ -13,7 +13,7 @@
     <SignAssembly>True</SignAssembly>
     <AssemblyOriginatorKeyFile>..\..\HaleyProject\HaleyProject.snk</AssemblyOriginatorKeyFile>
     <PackageIcon>Haley.png</PackageIcon>
-    <Version>0.0.31.1</Version>
+    <Version>0.0.32</Version>
     <IncludeSymbols>True</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <PackageProjectUrl>https://github.com/TheHaleyProject/HaleyHelpers.DB</PackageProjectUrl>
@@ -70,7 +70,7 @@
     </When>
     <Otherwise>
       <ItemGroup>
-        <PackageReference Include="Haley.Helpers" Version="2.3.13.1" />
+        <PackageReference Include="Haley.Helpers" Version="2.3.14" />
       </ItemGroup>
     </Otherwise>
   </Choose>
