@@ -277,6 +277,11 @@ namespace Haley.Utils {
         public ITransactionHandler GetTransactionHandler(string adapterKey) {
             return new TransactionHandler(GetAdapterInfo(adapterKey)) {_dbs = GetDBService() }; 
         }
+
+        public ITransactionHandler GetTransactionHandler() {
+            if (!TryGetDefaultKey(out var key)) throw new ArgumentException("Adapter key cannot be empty, while creating the transaction.");
+            return GetTransactionHandler(key);
+        }
         protected IAdapterConfig GetAdapterInfo(string adapterKey) {
             if (string.IsNullOrWhiteSpace(adapterKey) || !ContainsKey(adapterKey)) throw new ArgumentNullException($@"Adapter key not registered {adapterKey}");
            return this[adapterKey].Info.Clone() as IAdapterConfig; //All connection strings properly parsed.
@@ -337,10 +342,20 @@ namespace Haley.Utils {
             return this[input.Key];
         }
 
+        protected virtual bool TryGetDefaultKey(out string key) {
+            key = string.Empty;
+            return false;
+        }
+
         async Task<object> ExecuteInternal(IAdapterArgs input, params (string key, object value)[] parameters) {
             try {
                 object result = null;
-                if (input is AdapterArgs inputEx && inputEx.ReturnsResult) {
+                var inputEx = input as AdapterArgs;
+                if (inputEx != null && string.IsNullOrWhiteSpace(inputEx.Key) && TryGetDefaultKey(out var _key)) {
+                    input.SetAdapterKey(_key);
+                }
+
+                if (inputEx != null && inputEx.ReturnsResult) {
                     if (inputEx.IsScalar) {
                         result = (await GetAdapter(input).Scalar(input, parameters));
                     } else {

@@ -115,6 +115,12 @@ namespace Haley.Utils {
         public string GetAdapterKey() {
             return _defaultAdapterKey;
         }
+
+        protected override bool TryGetDefaultKey(out string key) {
+            key = _defaultAdapterKey;
+            return true;
+        }
+
         public IFeedback GetCommandStatus(Enum cmd)  {
             return GetModule(cmd.GetType())?.GetInvocationMethodName(cmd) ?? (IFeedback)new Feedback(false);
         }
