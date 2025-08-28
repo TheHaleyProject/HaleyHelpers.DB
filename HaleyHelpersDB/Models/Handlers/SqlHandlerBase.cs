@@ -73,7 +73,7 @@ namespace Haley.Models {
                     }
                     if (flag) {
                         var pvalue = kvp.Value;
-                        if (pvalue.GetType().FullName!.StartsWith(TupleTypeName)) {
+                        if (pvalue != null && pvalue.GetType().FullName!.StartsWith(TupleTypeName)) {
                             FillParameterInternal(msp, pvalue);
                         } else {
                             msp.Value = pvalue ?? DBNull.Value; //Lets set the value as dbnull
