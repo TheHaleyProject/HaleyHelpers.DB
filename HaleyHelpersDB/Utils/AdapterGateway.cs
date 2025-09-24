@@ -359,7 +359,7 @@ namespace Haley.Utils {
                     if (inputEx.IsScalar) {
                         result = (await GetAdapter(input).Scalar(input, parameters));
                     } else {
-                        result = ((DataSet)await GetAdapter(input).Read(input, parameters))?.Select(true)?.Convert()?.ToList();
+                        result = ((DataSet)await GetAdapter(input).Read(input, parameters))?.Select(true)?.Convert(input.JsonStringAsNode)?.ToList();
                     }
                 } else {
                     result = await GetAdapter(input).NonQuery(input, parameters);
