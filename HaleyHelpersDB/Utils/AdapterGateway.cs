@@ -29,6 +29,7 @@ namespace Haley.Utils {
         //}
 
         const string DBASTRING = "AdapterStrings";
+        const string CONFIG_DEFADAPTER = "defadapter";
         const string DBNAME_KEY = "database=";
         const string DBTYPE_KEY = "dbtype=";
         const string SEARCHPATH_KEY = "searchpath=";
@@ -37,6 +38,15 @@ namespace Haley.Utils {
         IGatewayUtil _util;
 
         ConcurrentDictionary<string, (string conStr, TargetDB dbtype)> connectionstrings = new ConcurrentDictionary<string, (string cstr, TargetDB dbtype)>();
+
+        protected string _defaultAdapterKey = string.Empty;
+
+        public void SetDefaultAdapterKey(string adapterKey) {
+            //Set the adapter key for all the modules (if not provided along with the parameter)
+            if (string.IsNullOrWhiteSpace(adapterKey)) throw new ArgumentNullException(nameof(adapterKey));
+            _defaultAdapterKey = adapterKey;
+        }
+
         public AdapterGateway(bool autoConfigure = true) {
             //Id = Guid.NewGuid();
             if (autoConfigure) Configure();
@@ -187,6 +197,10 @@ namespace Haley.Utils {
                         }
                     }
                 }
+
+                //After we finish loading everything, check if we have any default adapter or not.
+                var defAdapter = ResourceUtils.FetchVariable(root, CONFIG_DEFADAPTER);
+                if (!string.IsNullOrWhiteSpace(defAdapter?.Result?.ToString())) _defaultAdapterKey = defAdapter?.Result?.ToString();
             } catch (Exception) {
                 throw;
             }
@@ -343,8 +357,9 @@ namespace Haley.Utils {
         }
 
         protected virtual bool TryGetDefaultKey(out string key) {
-            key = string.Empty;
-            return false;
+            key = _defaultAdapterKey ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(key)) return false;
+            return true;
         }
 
         async Task<object> ExecuteInternal(IAdapterArgs input, params (string key, object value)[] parameters) {

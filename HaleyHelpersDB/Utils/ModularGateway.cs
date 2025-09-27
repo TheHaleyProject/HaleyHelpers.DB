@@ -10,13 +10,7 @@ namespace Haley.Utils {
         ILogger _logger;
         ConcurrentDictionary<Type, IDBModule> _modules = new ConcurrentDictionary<Type, IDBModule>();
         ConcurrentDictionary<Type, string> _moduleAdapterKeys = new ConcurrentDictionary<Type, string>();
-        string _defaultAdapterKey = string.Empty;
-
-        public void SetDefaultAdapterKey(string adapterKey) {
-            //Set the adapter key for all the modules (if not provided along with the parameter)
-            if (string.IsNullOrWhiteSpace(adapterKey)) throw new ArgumentNullException(nameof(adapterKey));
-            _defaultAdapterKey = adapterKey;
-        }
+   
         public void SetDefaultAdapterKey<E>(string adapterKey) 
             where E : Enum {
             SetDefaultAdapterKey(typeof(E), adapterKey);
@@ -114,11 +108,6 @@ namespace Haley.Utils {
 
         public string GetAdapterKey() {
             return _defaultAdapterKey;
-        }
-
-        protected override bool TryGetDefaultKey(out string key) {
-            key = _defaultAdapterKey;
-            return true;
         }
 
         public IFeedback GetCommandStatus(Enum cmd)  {
