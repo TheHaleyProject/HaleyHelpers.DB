@@ -96,46 +96,53 @@ namespace Haley.Models {
         }
 
         public virtual async Task<object> ExecuteInternal(IAdapterArgs input, Func<IDbCommand, Task<object>> processor, params (string key, object value)[] parameters) {
-            if (!(input is AdapterArgs)) throw new ArgumentException($@"Input is not derived from {nameof(AdapterArgs)}. Cannot obtain the connection string information.");
-            var targetConStr = _conString;
-            if (input.ExcludeDBInConString) {
-                //Which means we are trying to do something without the database information.
-                //Now, in this we need to remove the database information. Because we are only trying to run the operation at the connection level. May be we are trying to create the database here.
-                targetConStr = _conString.RemoveKeys(';', "database");
-            }
-            var conn = GetConnection(targetConStr);
-            //INITIATE CONNECTION
-            input.Logger?.LogInformation($@"Opening connection - {targetConStr}");
-            //conn.Open();
-            if (input.TransactionMode) {
-                if (_transaction == null)throw new ArgumentNullException("This SQL Handler will work only inside a transaction. Transaction appears to be null. Please verify if you have disposed or closed the transaction object.");
-            } else if (conn is DbConnection dbc1) {
-                await dbc1.OpenAsync(); //For pgsql, we don't do this. It is done by NPGSQL source
-            }
+            object conn = null;
+            try {
+                if (!(input is AdapterArgs)) throw new ArgumentException($@"Input is not derived from {nameof(AdapterArgs)}. Cannot obtain the connection string information.");
+                var targetConStr = _conString;
+                if (input.ExcludeDBInConString) {
+                    //Which means we are trying to do something without the database information.
+                    //Now, in this we need to remove the database information. Because we are only trying to run the operation at the connection level. May be we are trying to create the database here.
+                    targetConStr = _conString.RemoveKeys(';', "database");
+                }
+                conn = GetConnection(targetConStr);
+                //INITIATE CONNECTION
+                input.Logger?.LogInformation($@"Opening connection - {targetConStr}");
+                //conn.Open();
+                if (input.TransactionMode) {
+                    if (_transaction == null) throw new ArgumentNullException("This SQL Handler will work only inside a transaction. Transaction appears to be null. Please verify if you have disposed or closed the transaction object.");
+                } else if (conn is DbConnection dbc1) {
+                    await dbc1.OpenAsync(); //For pgsql, we don't do this. It is done by NPGSQL source
+                }
 
-            object result = null;
+                object result = null;
 
-            if (input.Query is string qryStr) {
-                IDbCommand cmd = GetCommand(conn);
-                cmd.CommandText = qryStr;
-                input.Logger?.LogInformation($@"Creating query {qryStr}");
-                FillParameters(cmd, input, parameters);
-                input.Logger?.LogInformation("About to execute");
-                result = await processor.Invoke(cmd);
-            } else if(input.Query is string[] queries) {
-                foreach (var stmt in queries) {
-                    string trimmed = stmt.Trim();
-                    if (string.IsNullOrWhiteSpace(trimmed)) continue; //May be a mistake.
+                if (input.Query is string qryStr) {
                     IDbCommand cmd = GetCommand(conn);
-                    cmd.CommandText = trimmed;
-                    input.Logger?.LogInformation($@"Creating query - {trimmed}");
-                    await processor.Invoke(cmd);
+                    cmd.CommandText = qryStr;
+                    input.Logger?.LogInformation($@"Creating query {qryStr}");
+                    FillParameters(cmd, input, parameters);
+                    input.Logger?.LogInformation("About to execute");
+                    result = await processor.Invoke(cmd);
+                } else if (input.Query is string[] queries) {
+                    foreach (var stmt in queries) {
+                        string trimmed = stmt.Trim();
+                        if (string.IsNullOrWhiteSpace(trimmed)) continue; //May be a mistake.
+                        IDbCommand cmd = GetCommand(conn);
+                        cmd.CommandText = trimmed;
+                        input.Logger?.LogInformation($@"Creating query - {trimmed}");
+                        await processor.Invoke(cmd);
+                    }
+                }
+               
+                return result;
+            } finally  {
+                if (!input.TransactionMode && conn is DbConnection dbc) {
+                    await dbc.CloseAsync();
+                    await dbc.DisposeAsync(); //Dispose immediately to return to the pool
+                    input.Logger?.LogInformation("Connection closed");
                 }
             }
-
-            if (!input.TransactionMode && conn is DbConnection dbc2) await dbc2.CloseAsync();
-            input.Logger?.LogInformation("Connection closed");
-            return result;
         }
 
         public async Task<object> NonQuery(IAdapterArgs input, params (string key, object value)[] parameters) {
