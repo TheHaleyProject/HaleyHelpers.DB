@@ -13,7 +13,7 @@
     <SignAssembly>True</SignAssembly>
     <AssemblyOriginatorKeyFile>..\..\HaleyProject\HaleyProject.snk</AssemblyOriginatorKeyFile>
     <PackageIcon>Haley.png</PackageIcon>
-    <Version>0.0.43</Version>
+    <Version>0.0.44</Version>
     <IncludeSymbols>True</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <PackageProjectUrl>https://github.com/TheHaleyProject/HaleyHelpers.DB</PackageProjectUrl>
@@ -27,6 +27,10 @@
     <Compile Remove="Models\Storage\**" />
     <EmbeddedResource Remove="Models\Storage\**" />
     <None Remove="Models\Storage\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Utils\AdapterGateway\AdapterGateway.Old.cs" />
   </ItemGroup>
 
   <ItemGroup>
