@@ -66,7 +66,8 @@ namespace Haley.Models {
                 //IDbDataParameter[] msp = new IDbDataParameter[parameters.Length];
                 foreach (var kvp in cmdparams) {
                     var msp = GetParameter();
-                    msp.ParameterName = kvp.Key.ToUpper(); //All key should be in caps.
+                    //msp.ParameterName = kvp.Key.ToUpper(); //All key should be in caps.
+                    msp.ParameterName = kvp.Key; //All key should be in caps.
                     bool flag = true; //start with true
                     if (input.ParamHandler != null) {
                         flag = input.ParamHandler.Invoke(kvp.Key, msp);
