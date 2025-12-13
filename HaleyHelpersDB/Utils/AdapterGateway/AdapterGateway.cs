@@ -28,6 +28,7 @@ namespace Haley.Utils {
         protected string _defaultAdapterKey = string.Empty;
         public bool IsDevelopment { get; protected set; }
         public Guid Id { get; } = Guid.NewGuid();
+        public bool LogQueryInConsole { get; set; }
         public bool ThrowCRUDExceptions { get; set; }
         public event DictionaryUpdatedEvent Updated;
         protected virtual IAdapterGateway GetDBService() { return this; }

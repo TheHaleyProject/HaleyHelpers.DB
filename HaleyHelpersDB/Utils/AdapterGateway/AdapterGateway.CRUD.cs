@@ -88,6 +88,7 @@ namespace Haley.Utils {
         async Task<object> ExecuteInternal(IAdapterArgs input, params (string key, object value)[] parameters) {
             try {
                 object result = null;
+                input.LogQueryInConsole = LogQueryInConsole; //set the logging preference
                 var inputEx = input as AdapterArgs;
                 if (inputEx != null && string.IsNullOrWhiteSpace(inputEx.Key) && TryGetDefaultKey(out var _key)) {
                     input.SetAdapterKey(_key);

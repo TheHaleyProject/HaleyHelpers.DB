@@ -96,6 +96,39 @@ namespace Haley.Models {
             }
         }
 
+        string GetFullQueryForLogging(string Sql, (string key,object value)[] Params) {
+            try {
+                var result = Sql;
+                if (string.IsNullOrWhiteSpace(result)) return result;
+
+                foreach (var param in Params) {
+                    string replacement;
+
+                    if (param.value == null || param.value is System.DBNull) {
+                        replacement = "NULL";
+                    } else if (param.value is string s) {
+                        // Escape single quotes for SQL
+                        replacement = $"'{s.Replace("'", "''")}'";
+                    } else if (param.value is DateTime dt) {
+                        replacement = $"'{dt:yyyy-MM-dd HH:mm:ss}'";
+                    } else if (param.value is bool b) {
+                        replacement = b ? "TRUE" : "FALSE";
+                    } else if (param.value is IEnumerable<int> intArray) {
+                        replacement = $"ARRAY[{string.Join(",", intArray)}]";
+                    } else {
+                        replacement = param.value.ToString();
+                    }
+
+                    // Make sure we replace the parameter name exactly
+                    result = result.Replace(param.key, replacement);
+                }
+
+                return result;
+            } catch {
+                return Sql;
+            }
+        }
+
         public virtual async Task<object> ExecuteInternal(IAdapterArgs input, Func<IDbCommand, Task<object>> processor, params (string key, object value)[] parameters) {
             object conn = null;
             try {
@@ -124,6 +157,11 @@ namespace Haley.Models {
                     input.Logger?.LogInformation($@"Creating query {qryStr}");
                     FillParameters(cmd, input, parameters);
                     input.Logger?.LogInformation("About to execute");
+                    if (input.LogQueryInConsole) {
+                        var fullquery = GetFullQueryForLogging(qryStr, parameters);
+                        input.Logger?.LogInformation($@"Executing Query - {fullquery}");
+                        Console.WriteLine($@"Executing Query - {fullquery}");
+                    }
                     result = await processor.Invoke(cmd);
                 } else if (input.Query is string[] queries) {
                     foreach (var stmt in queries) {

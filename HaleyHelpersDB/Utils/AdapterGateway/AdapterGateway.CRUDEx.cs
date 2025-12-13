@@ -11,7 +11,7 @@ namespace Haley.Utils {
 
     public partial class AdapterGateway {
         public Task<IFeedback<List<Dictionary<string, object>>>> ReadAsync(string key, string query, params (string key, object value)[] parameters) {
-            return ReadAsync(new AdapterArgs(key) { Query = query }, parameters);
+            return ReadAsync(new AdapterArgs(key) { Query = query}, parameters);
         }
         public Task<IFeedback<Dictionary<string, object>>> ReadSingleAsync(string key, string query, params (string key, object value)[] parameters) {
             return ReadSingleAsync(new AdapterArgs(key) { Query = query, Filter = ResultFilter.FirstDictionary }, parameters);
