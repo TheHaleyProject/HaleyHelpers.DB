@@ -59,9 +59,36 @@ namespace Haley.Utils {
             var newConStr = infoClone.ConnectionString.ReplaceValues(';', connectionStringReplacements);
             infoClone.AdapterKey = newAdapterKey;
             infoClone.ConnectionString = newConStr;
-            infoClone.DBName = ParseConnectionString(newConStr, DBNAME_KEY);
+            infoClone.DBName = Convert.ToString(newConStr.GetValue(DBNAME_KEY,';'));
             Add(infoClone, true);
             return result.SetStatus(true);
+        }
+
+        private static (string cstr, TargetDB dbtype) SplitConnectionString(string connectionString) {
+            string conStr = connectionString;
+            TargetDB targetType = TargetDB.unknown;
+            var dic = conStr.ToDictionarySplit(';'); //Get the dictionary split first.
+            //Check if dbtype key exists.
+            if (dic.ContainsKey(DBTYPE_KEY)) {
+                switch (dic[DBTYPE_KEY].ToString()?.ToLowerInvariant()) {
+                    case "maria":
+                    targetType = TargetDB.maria;
+                    break;
+                    case "mssql":
+                    targetType = TargetDB.mssql;
+                    break;
+                    case "pgsql":
+                    targetType = TargetDB.pgsql;
+                    break;
+                    case "mysql":
+                    default:
+                    targetType = TargetDB.mysql;
+                    break;
+                }
+                dic.Remove(DBTYPE_KEY); //Remove the dbtype key.
+                conStr = dic.Join(';'); //Rebuild the connection string without the dbtype.
+            }
+            return (conStr, targetType);
         }
     }
 }

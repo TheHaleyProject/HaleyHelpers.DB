@@ -44,16 +44,16 @@ namespace Haley.Utils {
                         var constr = connectionData.conStr;
                         if (!string.IsNullOrWhiteSpace(entry.DBName)) {
                             //replace this name in the connection string.
-                            constr = ReplaceParameter(constr, DBNAME_KEY, entry.DBName);
+                            constr = constr.ReplaceValue(';', DBNAME_KEY, entry.DBName);
                         } else {
                             //Let us try to fetch the dbname from the input.
-                            entry.DBName = ParseConnectionString(constr,DBNAME_KEY);
+                            entry.DBName = Convert.ToString(constr.GetValue(DBNAME_KEY, ';'));
                         }
                         entry.ConnectionString = constr;
 
                         //For postgres, add schema as well
                         if (entry.DBType == TargetDB.pgsql && !string.IsNullOrWhiteSpace(entry.SchemaName)) {
-                            entry.ConnectionString = ReplaceParameter(entry.ConnectionString, SEARCHPATH_KEY, entry.SchemaName);
+                            entry.ConnectionString = entry.ConnectionString.ReplaceValue(';',SEARCHPATH_KEY, entry.SchemaName);
                         }
 
                         // In case dbtype is unknown then it should not register as we don't know which database handler to use.
