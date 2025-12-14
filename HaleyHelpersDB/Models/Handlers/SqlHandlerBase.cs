@@ -100,7 +100,7 @@ namespace Haley.Models {
             try {
                 var result = Sql;
                 if (string.IsNullOrWhiteSpace(result)) return result;
-
+                
                 foreach (var param in Params) {
                     string replacement;
 
@@ -119,8 +119,9 @@ namespace Haley.Models {
                         replacement = param.value.ToString();
                     }
 
+                    string pattern = $@"(?<!\w){Regex.Escape(param.key)}(?!\w)";
                     // Make sure we replace the parameter name exactly
-                    result = result.Replace(param.key, replacement);
+                    result = Regex.Replace(result, pattern, replacement!, RegexOptions.IgnoreCase);
                 }
 
                 return result;
@@ -157,10 +158,17 @@ namespace Haley.Models {
                     input.Logger?.LogInformation($@"Creating query {qryStr}");
                     FillParameters(cmd, input, parameters);
                     input.Logger?.LogInformation("About to execute");
+                    
                     if (input.LogQueryInConsole) {
-                        var fullquery = GetFullQueryForLogging(qryStr, parameters);
-                        input.Logger?.LogInformation($@"Executing Query - {fullquery}");
-                        Console.WriteLine($@"Executing Query - {fullquery}");
+                        _ = Task.Run(() => {
+                            try {
+                                var fullquery = GetFullQueryForLogging(qryStr, parameters);
+                                input.Logger?.LogInformation($@"Executing Query - {fullquery}");
+                                Console.WriteLine($@"Executing Query - {fullquery}");
+                            } catch (Exception) {
+                                //Swallow
+                            }
+                        });
                     }
                     result = await processor.Invoke(cmd);
                 } else if (input.Query is string[] queries) {
