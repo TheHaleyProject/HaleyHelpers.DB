@@ -50,20 +50,20 @@
   </ItemGroup>
 
   <Import Project="$(SolutionDir)ProjectReferences_$(SolutionName).txt" Condition="Exists('$(SolutionDir)ProjectReferences_$(SolutionName).txt')" />
-  <!--<Choose>
-    <When Condition="Exists($(HaleyAbstractions))">
+  <Choose>
+    <When Condition="Exists($(HaleyAbstractionsCore))">
       <ItemGroup>
-        <ProjectReference Include="$(HaleyAbstractions)\HaleyAbstractions.csproj">
-          <Name>HaleyAbstractions</Name>
+        <ProjectReference Include="$(HaleyAbstractionsCore)\HaleyAbstractionsCore.csproj">
+          <Name>HaleyAbstractionsCore</Name>
         </ProjectReference>
       </ItemGroup>
     </When>
     <Otherwise>
       <ItemGroup>
-        <PackageReference Include="Haley.Abstractions" Version="$(HaleyAbstractionsVersion)" />
+        <PackageReference Include="Haley.Abstractions.Core" Version="$(HaleyAbstractionsCoreVersion)" />
       </ItemGroup>
     </Otherwise>
-  </Choose>-->
+  </Choose>
   <Choose>
     <When Condition="Exists($(HaleyHelpers))">
       <ItemGroup>
