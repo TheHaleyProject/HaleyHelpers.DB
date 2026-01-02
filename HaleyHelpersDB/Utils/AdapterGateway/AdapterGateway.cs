@@ -32,6 +32,7 @@ namespace Haley.Utils {
         public bool ThrowCRUDExceptions { get; set; }
         public event DictionaryUpdatedEvent Updated;
         protected virtual IAdapterGateway GetDBService() { return this; }
+
         public AdapterGateway(bool autoConfigure = true) {
             //Id = Guid.NewGuid();
             if (autoConfigure) Configure();

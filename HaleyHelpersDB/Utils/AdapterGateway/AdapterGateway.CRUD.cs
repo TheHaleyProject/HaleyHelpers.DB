@@ -52,40 +52,13 @@ namespace Haley.Utils {
             return NonQuery(input.ToAdapterArgs(query), parameters);
         }
 
-        public async Task<object> Read(IAdapterArgs input,  params (string key, object value)[] parameters) {
-            if (input is AdapterArgs inputEx) inputEx.ReturnsResult = true;
-            return await ExecuteInternal(input, parameters);
-        }
+        public Task<object> Read(IAdapterArgs input,  params (string key, object value)[] parameters) => ExecuteInternal(input, (inp) => { return GetAdapter(inp).Read(inp, parameters); });
 
-        public async Task<object> Scalar(IAdapterArgs input, params (string key, object value)[] parameters) {
-            if (input is AdapterArgs inputEx) {
-                inputEx.ReturnsResult = true;
-                inputEx.IsScalar = true;
-            }
-            return await ExecuteInternal(input, parameters);
-        }
+        public async Task<object> Scalar(IAdapterArgs input, params (string key, object value)[] parameters) => ExecuteInternal(input, (inp) => { return GetAdapter(inp).Scalar(inp, parameters); });
 
-        public async Task<object> NonQuery(IAdapterArgs input, params (string key, object value)[] parameters) {
-            if (input is AdapterArgs inputEx) inputEx.ReturnsResult = false;
-            return await ExecuteInternal(input, parameters);
-        }
+        public async Task<object> NonQuery(IAdapterArgs input, params (string key, object value)[] parameters) => ExecuteInternal(input, (inp) => { return GetAdapter(inp).NonQuery(inp, parameters); });
 
-        public async Task<object> GetFirst(object input, ResultFilter filter = ResultFilter.None) {
-            //Now, apply internal methods to get the result
-            input = input.ApplyFilter(filter);
-            if (_util != null) return _util.Convert(input); //we know that it is not a dictionary
-            return input;
-        }
-
-        //(string key, object value, ParameterDirection direction)[] ParamAdapter(params (string key, object value)[] parameters) {
-        //    List<(string key, object value, ParameterDirection direction)> result = new List<(string key, object value, ParameterDirection direction)>();
-        //    foreach (var item in parameters) {
-        //        result.Add((item.key, item.value, ParameterDirection.Input));
-        //    }
-        //    return result.ToArray();
-        //}
-
-        async Task<object> ExecuteInternal(IAdapterArgs input, params (string key, object value)[] parameters) {
+        async Task<object> ExecuteInternal(IAdapterArgs input, Func<IAdapterArgs,Task<object>> executor) {
             try {
                 object result = null;
                 input.LogQueryInConsole = LogQueryInConsole; //set the logging preference
@@ -94,22 +67,15 @@ namespace Haley.Utils {
                     input.SetAdapterKey(_key);
                 }
 
-                if (inputEx != null && inputEx.ReturnsResult) {
-                    if (inputEx.IsScalar) {
-                        result = (await GetAdapter(input).Scalar(input, parameters));
-                    } else {
-                        result = ((DataSet)await GetAdapter(input).Read(input, parameters))?.Select(true)?.Convert(input.JsonStringAsNode)?.ToList();
-                    }
-                } else {
-                    result = await GetAdapter(input).NonQuery(input, parameters);
-                }
-                return await GetFirst(result,input.Filter);
+                result = await executor.Invoke(input);
+                if (_util != null) return _util.Convert(result); //we know that it is not a dictionary
+                return result;
             } catch (Exception ex) {
                 input.Logger?.LogError($@"Error for: {input.Query}");
                 input.Logger?.LogError(ex.Message);
                 input.Logger?.LogError(ex.StackTrace);
                 if (ThrowCRUDExceptions) throw ex;
-                return await GetFirst(new FeedbackError(ex.Message));
+                return new FeedbackError(ex.Message);
             }
         }
         #endregion
