@@ -66,15 +66,17 @@ namespace Haley.Models
         public async Task<IFeedback<DbRows>> ReadAsync(IAdapterArgs input, params (string key, object value)[] parameters) {
             var fb = new Feedback<DbRows>();
             var result = await Read(input, parameters);
-            if (result is not List<Dictionary<string, object>> list || list.Count == 0) return fb.SetMessage("No records found.");
+            //If result is not dictionary, then we can throw error.. But if result is empty list, then we can return empty DbRows.
+            if (result is not List<Dictionary<string, object>> list) return fb.SetMessage("Invalid result returned from database for ReadAsync.");
             return fb.SetStatus(true).SetResult(list.ToDbRows());
         }
 
         public async Task<IFeedback<DbRow>> ReadSingleAsync(IAdapterArgs input, params (string key, object value)[] parameters) {
             var fb = new Feedback<DbRow>();
-            if (input is AdapterArgs ex) ex.Filter = ResultFilter.FirstDictionary;
+            if (input is AdapterArgs ex) ex.Filter = ResultFilter.FirstDictionary; //We are setting result filter here itself.. 
             var result = await Read(input, parameters);
-            if (result is not Dictionary<string, object> dic) return fb.SetMessage("Record not found.");
+            if (result == null) return fb.SetStatus(true).SetMessage("No records found.");
+            if (result is not Dictionary<string, object> dic) return fb.SetMessage("Invalid result returned from database for ReadAsync.");
             return fb.SetStatus(true).SetResult(dic.ToDbRow());
         }
 
