@@ -81,7 +81,7 @@ namespace Haley.Models
         public async Task<IFeedback<T>> ScalarAsync<T>(IAdapterArgs input, params (string key, object value)[] parameters) {
             var fb = new Feedback<T>();
             var result = await Scalar(input, parameters);
-            if (result == null) return fb.SetMessage("No result returned.");
+            if (result == null) return fb.SetStatus(true).SetMessage("No result returned."); //if result is null, we still need to return the result, we cannot call it as false. May be leave the result empty for the application to process.
 
             // bool first (covers BIT(1), TINYINT(1), string, byte[])
             if (typeof(T) == typeof(bool)) {

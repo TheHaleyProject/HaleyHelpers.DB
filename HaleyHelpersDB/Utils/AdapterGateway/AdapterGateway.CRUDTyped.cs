@@ -36,7 +36,7 @@ namespace Haley.Utils {
                 input.Logger?.LogError($@"Error for: {input.Query}");
                 input.Logger?.LogError(ex.Message);
                 input.Logger?.LogError(ex.StackTrace);
-                if (ThrowCRUDExceptions) throw ex;
+                if (ThrowCRUDExceptions) throw;
                 var fb = new Feedback<T>();
                 return Task.FromResult(fb.SetStatus(false).SetMessage(ex.Message)); // adapt to your API
             }

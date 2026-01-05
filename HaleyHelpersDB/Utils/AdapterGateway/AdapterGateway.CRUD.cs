@@ -54,9 +54,9 @@ namespace Haley.Utils {
 
         public Task<object> Read(IAdapterArgs input,  params (string key, object value)[] parameters) => ExecuteInternal(input, (inp) => { return GetAdapter(inp).Read(inp, parameters); });
 
-        public async Task<object> Scalar(IAdapterArgs input, params (string key, object value)[] parameters) => ExecuteInternal(input, (inp) => { return GetAdapter(inp).Scalar(inp, parameters); });
+        public Task<object> Scalar(IAdapterArgs input, params (string key, object value)[] parameters) => ExecuteInternal(input, (inp) => { return GetAdapter(inp).Scalar(inp, parameters); });
 
-        public async Task<object> NonQuery(IAdapterArgs input, params (string key, object value)[] parameters) => ExecuteInternal(input, (inp) => { return GetAdapter(inp).NonQuery(inp, parameters); });
+        public Task<object> NonQuery(IAdapterArgs input, params (string key, object value)[] parameters) => ExecuteInternal(input, (inp) => { return GetAdapter(inp).NonQuery(inp, parameters); });
 
         async Task<object> ExecuteInternal(IAdapterArgs input, Func<IAdapterArgs,Task<object>> executor) {
             try {
@@ -74,7 +74,7 @@ namespace Haley.Utils {
                 input.Logger?.LogError($@"Error for: {input.Query}");
                 input.Logger?.LogError(ex.Message);
                 input.Logger?.LogError(ex.StackTrace);
-                if (ThrowCRUDExceptions) throw ex;
+                if (ThrowCRUDExceptions) throw;
                 return new FeedbackError(ex.Message);
             }
         }
