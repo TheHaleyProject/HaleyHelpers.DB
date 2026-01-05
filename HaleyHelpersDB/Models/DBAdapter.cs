@@ -96,8 +96,9 @@ namespace Haley.Models
                 return fb.SetStatus(true).SetResult((T)(object)l);
             if (typeof(T) == typeof(int) && int.TryParse(result.ToString(), out var i))
                 return fb.SetStatus(true).SetResult((T)(object)i);
-
             if (result is T typed) return fb.SetStatus(true).SetResult(typed);
+            //One final ditch attempt to convert to string. Reason is, we might sometimes, get GUID but expect it to be converted to string.. In those cases, we can directly ToString().
+            if (typeof(T) == typeof(string) && result.ToString() != null) return fb.SetStatus(true).SetResult((T)(object)result.ToString());
             return fb.SetMessage($"Unexpected scalar type. Expected {typeof(T).Name}, got {result.GetType().Name}.");
         }
 
