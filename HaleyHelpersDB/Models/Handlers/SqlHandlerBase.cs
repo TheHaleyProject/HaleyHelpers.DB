@@ -274,18 +274,46 @@ namespace Haley.Models {
             while (reader.Read()) {
                 var row = table.NewRow();
                 for (int i = 0; i < reader.FieldCount; i++) {
-                    var value = reader.GetValue(i);
-
-                    if (value is BitArray ba) {
-                        // Convert BitArray to string like "101"
-                        var bits = new char[ba.Length];
-                        for (int b = 0; b < ba.Length; b++) {
-                            bits[b] = ba[b] ? '1' : '0';
+                    try {
+                        //if value is DBNull, set it directly
+                        if (reader.IsDBNull(i)) {
+                            row[i] = DBNull.Value;
+                            continue;
+                        }
+                        object value = null; 
+                        
+                        //Sometimes GUID is not properly figured out..
+                        if (reader.GetFieldType(i) == typeof(Guid)) {
+                            //if there is a GUID getter. Some ADO.net providers have this getter.
+                            try {
+                                value = reader.GetGuid(i);
+                            } catch {
+                                //If the ado.net doesn't have a getter. Reade as string and parse.
+                                var s = reader.GetString(i);
+                                //value = Guid.TryParse(s, out var g) ? g : s;
+                                if (s.TryParseGuidLenient(out var valueGuid)) {
+                                    value = valueGuid;
+                                } else {
+                                    throw;
+                                }
+                            }
+                        } else {
+                            value = reader.GetValue(i); //Try to get value directly.
                         }
 
-                        row[i] = new string(bits);
-                    } else {
-                        row[i] = value is DBNull ? DBNull.Value : value;
+                        if (value is BitArray ba) {
+                            // Convert BitArray to string like "101"
+                            var bits = new char[ba.Length];
+                            for (int b = 0; b < ba.Length; b++) {
+                                bits[b] = ba[b] ? '1' : '0';
+                            }
+
+                            row[i] = new string(bits);
+                        } else {
+                            row[i] = value is DBNull ? DBNull.Value : value;
+                        }
+                    } catch (Exception ex) {
+                        throw;
                     }
                 }
                 table.Rows.Add(row);
