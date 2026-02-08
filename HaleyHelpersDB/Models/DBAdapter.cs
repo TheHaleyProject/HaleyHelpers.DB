@@ -3,6 +3,7 @@ using Haley.Enums;
 using Haley.Utils;
 using System.Collections.Concurrent;
 using System.Data;
+using System.Globalization;
 
 namespace Haley.Models
 {
@@ -83,22 +84,37 @@ namespace Haley.Models
         public async Task<IFeedback<T>> ScalarAsync<T>(IAdapterArgs input, params (string key, object value)[] parameters) {
             var fb = new Feedback<T>();
             var result = await Scalar(input, parameters);
-            if (result == null) return fb.SetStatus(true).SetMessage("No result returned."); //if result is null, we still need to return the result, we cannot call it as false. May be leave the result empty for the application to process.
+            if (result is null || result is DBNull) return fb.SetStatus(true).SetResult(default!).SetMessage("No result returned."); //if result is null, we still need to return the result, we cannot call it as false. May be leave the result empty for the application to process.
+
+            var target = Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T);
 
             // bool first (covers BIT(1), TINYINT(1), string, byte[])
-            if (typeof(T) == typeof(bool)) {
+            if (target == typeof(bool)) {
                 if (TryToBool(result, out var bv)) return fb.SetStatus(true).SetResult((T)(object)bv);
                 return fb.SetMessage($"Unexpected scalar type for bool. Got {result.GetType().Name} value '{result}'.");
             }
 
+            try {
+                if (target == typeof(long)) {
+                    var l = Convert.ToInt64(result, CultureInfo.InvariantCulture);
+                    return fb.SetStatus(true).SetResult((T)(object)l);
+                }
+
+                if (target == typeof(int)) {
+                    var i = Convert.ToInt32(result, CultureInfo.InvariantCulture);
+                    return fb.SetStatus(true).SetResult((T)(object)i);
+                }
+            } catch (Exception ex) {
+                return fb.SetMessage($"Failed to convert scalar to {typeof(T).Name}. Got {result.GetType().Name} value '{result}'. {ex.Message}");
+            }
+
             // Fast-path numeric conversions commonly used (int/long)
-            if (typeof(T) == typeof(long) && long.TryParse(result.ToString(), out var l))
-                return fb.SetStatus(true).SetResult((T)(object)l);
-            if (typeof(T) == typeof(int) && int.TryParse(result.ToString(), out var i))
-                return fb.SetStatus(true).SetResult((T)(object)i);
+           
             if (result is T typed) return fb.SetStatus(true).SetResult(typed);
+
             //One final ditch attempt to convert to string. Reason is, we might sometimes, get GUID but expect it to be converted to string.. In those cases, we can directly ToString().
-            if (typeof(T) == typeof(string) && result.ToString() != null) return fb.SetStatus(true).SetResult((T)(object)result.ToString());
+            if (target == typeof(string)) return fb.SetStatus(true).SetResult((T)(object)result.ToString()!);
+
             return fb.SetMessage($"Unexpected scalar type. Expected {typeof(T).Name}, got {result.GetType().Name}.");
         }
 
