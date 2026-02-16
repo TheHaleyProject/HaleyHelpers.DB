@@ -14,7 +14,7 @@ using System.Reflection.Metadata.Ecma335;
 using Haley.Models;
 
 namespace Haley.Utils {
-    public static class DataSetExtensions {
+    public static class DBExtensions {
         public static List<Dictionary<string, object>> Convert(this DataTable dt, ILogger logger, bool handleJson = false) {
             try {
                 return dt.Convert(handleJson).ToList();
@@ -32,6 +32,17 @@ namespace Haley.Utils {
         }
         public static DataTable Select(this DataSet ds, bool islast) {
             return ds.Select(islast ? -1 : 0); // for last select -1, else select the first one.
+        }
+        public static (string key, object value)[] ToAgwArgs(this DbArg[]? args) {
+            if (args == null || args.Length == 0) return Array.Empty<(string key, object value)>();
+
+            var arr = new (string key, object value)[args.Length];
+            for (int i = 0; i < args.Length; i++) {
+                // AGW expects object (non-nullable) — convert null to DBNull.Value (safe for DB)
+                var v = args[i].Value ?? DBNull.Value;
+                arr[i] = (args[i].Name, v);
+            }
+            return arr;
         }
     }
 }
