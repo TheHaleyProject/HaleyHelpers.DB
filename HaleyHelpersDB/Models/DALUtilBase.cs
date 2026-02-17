@@ -8,9 +8,14 @@ namespace Haley.Utils {
         private readonly IAdapterGateway _agw;
         protected readonly string _key;
 
-        public DALUtilBase(IAdapterGateway agw, string key) {
+        public DALUtilBase(IAdapterGateway agw, string? adapterKey = null) {
             _agw = agw ?? throw new ArgumentNullException(nameof(agw));
-            _key = key ?? throw new ArgumentNullException(nameof(key));
+            if (string.IsNullOrWhiteSpace(adapterKey)) {
+                if (string.IsNullOrWhiteSpace(agw.GetDefaultKey())) throw new ArgumentNullException(nameof(adapterKey));
+                _key = agw.GetDefaultKey();
+            } else {
+                _key = adapterKey;
+            }
         }
 
         public Task<int> ExecAsync(string sql, DbExecutionLoad load = default, params DbArg[] args) => _agw.ExecAsync(_key, sql, load, args);
