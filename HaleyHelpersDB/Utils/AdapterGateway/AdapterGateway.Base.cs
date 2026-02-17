@@ -20,6 +20,8 @@ namespace Haley.Utils {
             if (string.IsNullOrWhiteSpace(adapterKey)) throw new ArgumentNullException(nameof(adapterKey));
             _defaultAdapterKey = adapterKey;
         }
+
+        public string GetDefaultKey() => _defaultAdapterKey;
         public IAdapterGateway UpdateAdapter() {
             Configure(true);
             Updated?.Invoke();
