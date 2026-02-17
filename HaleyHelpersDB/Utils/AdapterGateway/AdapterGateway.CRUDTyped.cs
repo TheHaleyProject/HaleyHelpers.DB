@@ -10,7 +10,30 @@ using System.Diagnostics;
 namespace Haley.Utils {
 
     public partial class AdapterGateway {
-
+        public async Task<int> ExecAsync(string key, string sql, DbExecutionLoad load = default, params DbArg[] args) {
+            load.Ct.ThrowIfCancellationRequested();
+            var fb = await NonQueryAsync(new AdapterArgs(key) { Query = sql }.ForTransaction(load.Handler, false), args.ToAgwArgs());
+            if (!fb.Status) throw new InvalidOperationException(fb.Message ?? "NonQuery failed.");
+            return fb.Result;
+        }
+        public async Task<T?> ScalarAsync<T>(string key, string sql, DbExecutionLoad load = default, params DbArg[] args) {
+            load.Ct.ThrowIfCancellationRequested();
+            var fb = await ScalarAsync<T>(new AdapterArgs(key) { Query = sql }.ForTransaction(load.Handler, false), args.ToAgwArgs());
+            if (!fb.Status) throw new InvalidOperationException(fb.Message ?? "Scalar failed.");
+            return fb.Result;
+        }
+        public async Task<DbRow?> RowAsync(string key, string sql, DbExecutionLoad load = default, params DbArg[] args) {
+            load.Ct.ThrowIfCancellationRequested();
+            var fb = await ReadSingleAsync(new AdapterArgs(key) { Query = sql }.ForTransaction(load.Handler, false), args.ToAgwArgs());
+            if (!fb.Status) throw new InvalidOperationException(fb.Message ?? "ReadSingle failed.");
+            return fb.Result;
+        }
+        public async Task<DbRows> RowsAsync(string key, string sql, DbExecutionLoad load = default, params DbArg[] args) {
+            load.Ct.ThrowIfCancellationRequested();
+            var fb = await ReadAsync(new AdapterArgs(key) { Query = sql }.ForTransaction(load.Handler, false), args.ToAgwArgs());
+            if (!fb.Status) throw new InvalidOperationException(fb.Message ?? "Read failed.");
+            return fb.Result;
+        }
         public Task<IFeedback<DbRows>> ReadAsync(string key, string query, params (string key, object value)[] parameters) => ReadAsync(new AdapterArgs(key) { Query = query }, parameters);
         public Task<IFeedback<DbRow>> ReadSingleAsync(string key, string query, params (string key, object value)[] parameters) => ReadSingleAsync(new AdapterArgs(key) { Query = query, Filter = ResultFilter.FirstDictionary }, parameters);
         public Task<IFeedback<T>> ScalarAsync<T>(string key, string query, params (string key, object value)[] parameters) => ScalarAsync<T>(new AdapterArgs(key) { Query = query }, parameters);
@@ -23,7 +46,7 @@ namespace Haley.Utils {
         public Task<IFeedback<T>> ScalarAsync<T>(IAdapterArgs input, params (string key, object value)[] parameters) => SafeInternalExecute((inp) => GetAdapter(input).ScalarAsync<T>(input, parameters), input);
 
         public Task<IFeedback<int>> NonQueryAsync(IAdapterArgs input, params (string key, object value)[] parameters) => SafeInternalExecute((inp) => GetAdapter(input).NonQueryAsync(input, parameters), input);
-
+       
         Task<IFeedback<T>> SafeInternalExecute<T>(Func<IAdapterArgs, Task<IFeedback<T>>> executor, IAdapterArgs input) {
             try {
                 input.LogQueryInConsole = LogQueryInConsole; //set the logging preference

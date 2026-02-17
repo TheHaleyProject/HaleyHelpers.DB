@@ -51,19 +51,6 @@ namespace Haley.Models
         }
 
         #region Typed Handlers 
-        public Task<IFeedback<DbRows>> ReadAsync(string key, string query,  params (string key, object value)[] parameters) {
-            return ReadAsync(new AdapterArgs(key) { Query = query }, parameters);
-        }
-        public Task<IFeedback<DbRow>> ReadSingleAsync(string key, string query,  params (string key, object value)[] parameters) {
-            return ReadSingleAsync(new AdapterArgs(key) { Query = query, Filter = ResultFilter.FirstDictionary }, parameters);
-        }
-        public Task<IFeedback<T>> ScalarAsync<T>(string key, string query,  params (string key, object value)[] parameters) {
-            return ScalarAsync<T>(new AdapterArgs(key) { Query = query }, parameters);
-        }
-        public Task<IFeedback<int>> NonQueryAsync(string key, string query,  params (string key, object value)[] parameters) {
-            return NonQueryAsync(new AdapterArgs(key) { Query = query }, parameters);
-        }
-
         public async Task<IFeedback<DbRows>> ReadAsync(IAdapterArgs input, params (string key, object value)[] parameters) {
             var fb = new Feedback<DbRows>();
             var result = await Read(input, parameters);
@@ -123,31 +110,6 @@ namespace Haley.Models
             var result = await NonQuery(input, parameters);
             if (result == null || !(result is int resInt)) return fb.SetStatus(false).SetResult(0);
             return fb.SetStatus(true).SetResult(resInt);
-        }
-
-        public async Task<int> ExecAsync(string key, string sql, DbExecutionLoad load = default, params DbArg[] args) {
-            load.Ct.ThrowIfCancellationRequested();
-            var fb = await NonQueryAsync(new AdapterArgs(key) { Query = sql }.ForTransaction(load.Handler, false), args.ToAgwArgs());
-            if (!fb.Status) throw new InvalidOperationException(fb.Message ?? "NonQuery failed.");
-            return fb.Result;
-        }
-        public async Task<T?> ScalarAsync<T>(string key, string sql, DbExecutionLoad load = default, params DbArg[] args) {
-            load.Ct.ThrowIfCancellationRequested();
-            var fb = await ScalarAsync<T>(new AdapterArgs(key) { Query = sql }.ForTransaction(load.Handler, false), args.ToAgwArgs());
-            if (!fb.Status) throw new InvalidOperationException(fb.Message ?? "Scalar failed.");
-            return fb.Result;
-        }
-        public async Task<DbRow?> RowAsync(string key, string sql, DbExecutionLoad load = default, params DbArg[] args) {
-            load.Ct.ThrowIfCancellationRequested();
-            var fb = await ReadSingleAsync(new AdapterArgs(key) { Query = sql }.ForTransaction(load.Handler, false), args.ToAgwArgs());
-            if (!fb.Status) throw new InvalidOperationException(fb.Message ?? "ReadSingle failed.");
-            return fb.Result;
-        }
-        public async Task<DbRows> RowsAsync(string key, string sql, DbExecutionLoad load = default, params DbArg[] args) {
-            load.Ct.ThrowIfCancellationRequested();
-            var fb = await ReadAsync(new AdapterArgs(key) { Query = sql }.ForTransaction(load.Handler, false), args.ToAgwArgs());
-            if (!fb.Status) throw new InvalidOperationException(fb.Message ?? "Read failed.");
-            return fb.Result;
         }
 
         #endregion
