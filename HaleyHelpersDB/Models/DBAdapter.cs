@@ -77,7 +77,7 @@ namespace Haley.Models
 
             // bool first (covers BIT(1), TINYINT(1), string, byte[])
             if (target == typeof(bool)) {
-                if (TryToBool(result, out var bv)) return fb.SetStatus(true).SetResult((T)(object)bv);
+                if (result.TryToBool(out var bv)) return fb.SetStatus(true).SetResult((T)(object)bv);
                 return fb.SetMessage($"Unexpected scalar type for bool. Got {result.GetType().Name} value '{result}'.");
             }
 
@@ -114,28 +114,20 @@ namespace Haley.Models
 
         #endregion
 
-        static bool TryToBool(object value, out bool b) {
-            switch (value) {
-                case bool vb: b = vb; return true;
-                case byte by: b = by != 0; return true;                 // TINYINT(1)
-                case sbyte sby: b = sby != 0; return true;
-                case short sh: b = sh != 0; return true;
-                case ushort ush: b = ush != 0; return true;
-                case int vi: b = vi != 0; return true;
-                case uint u: b = u != 0; return true;
-                case long vl: b = vl != 0; return true;
-                case ulong ul: b = ul != 0; return true;
-                case decimal dec: b = dec != 0m; return true;
-                case double d: b = d != 0d; return true;
-                case float f: b = f != 0f; return true;
-                case byte[] arr when arr.Length > 0: b = arr[0] != 0; return true; // BIT(1) as bytes
-                case string s:
-                if (bool.TryParse(s, out var bp)) { b = bp; return true; }
-                if (long.TryParse(s, out var ln)) { b = ln != 0; return true; }
-                break;
+        public async Task<IFeedback<IReadOnlyList<T>>> ListAsync<T>(IAdapterArgs input, params (string key, object value)[] parameters)
+        {
+            var fb = new Feedback<IReadOnlyList<T>>();
+            if (input is AdapterArgs ex) ex.Filter = ResultFilter.FirstColumnValuesList; //We are setting result filter here itself.. 
+            var result = await Read(input, parameters);
+            if (result == null) return fb.SetStatus(true).SetMessage("No records found.");
+            if (result is not List<object> list) return fb.SetMessage("Invalid result returned from database for ListAsync.");
+
+            var finalResult = new List<T>();
+            foreach (var item in list) {
+                if (item is T typedItem) finalResult.Add(typedItem);
             }
-            b = default;
-            return false;
+
+            return fb.SetStatus(true).SetResult(finalResult);
         }
 
         #endregion

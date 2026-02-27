@@ -10,14 +10,17 @@ using System.Diagnostics;
 namespace Haley.Utils {
 
     public partial class AdapterGateway {
-        public Task<IFeedback<DbRows>> ReadAsync(IAdapterArgs input, params (string key, object value)[] parameters) => SafeInternalExecute((inp) => GetAdapter(input).ReadAsync(input, parameters),input);
+        public Task<IFeedback<DbRows>> ReadAsync(IAdapterArgs input, params (string key, object value)[] parameters) => SafeInternalExecute((inp) => GetAdapter(inp).ReadAsync(inp, parameters),input);
 
-        public Task<IFeedback<DbRow>> ReadSingleAsync(IAdapterArgs input, params (string key, object value)[] parameters) => SafeInternalExecute((inp) => GetAdapter(input).ReadSingleAsync(input, parameters), input);
+        public Task<IFeedback<DbRow>> ReadSingleAsync(IAdapterArgs input, params (string key, object value)[] parameters) => SafeInternalExecute((inp) => GetAdapter(inp).ReadSingleAsync(inp, parameters), input);
 
-        public Task<IFeedback<T>> ScalarAsync<T>(IAdapterArgs input, params (string key, object value)[] parameters) => SafeInternalExecute((inp) => GetAdapter(input).ScalarAsync<T>(input, parameters), input);
+        public Task<IFeedback<T>> ScalarAsync<T>(IAdapterArgs input, params (string key, object value)[] parameters) => SafeInternalExecute((inp) => GetAdapter(inp).ScalarAsync<T>(inp, parameters), input);
 
-        public Task<IFeedback<int>> NonQueryAsync(IAdapterArgs input, params (string key, object value)[] parameters) => SafeInternalExecute((inp) => GetAdapter(input).NonQueryAsync(input, parameters), input);
-       
+        public Task<IFeedback<int>> NonQueryAsync(IAdapterArgs input, params (string key, object value)[] parameters) => SafeInternalExecute((inp) => GetAdapter(inp).NonQueryAsync(inp, parameters), input);
+
+        public Task<IFeedback<IReadOnlyList<T>>> ListAsync<T>(IAdapterArgs input, params (string key, object value)[] parameters) => SafeInternalExecute((inp) => GetAdapter(inp).ListAsync<T>(inp, parameters),input);
+        
+
         Task<IFeedback<T>> SafeInternalExecute<T>(Func<IAdapterArgs, Task<IFeedback<T>>> executor, IAdapterArgs input) {
             try {
                 input.LogQueryInConsole = LogQueryInConsole; //set the logging preference

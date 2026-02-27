@@ -35,9 +35,19 @@ namespace Haley.Utils {
             return fb.Result;
         }
 
+        public async Task<IReadOnlyList<T>> ListAsync<T>(string key, string sql, DbExecutionLoad load = default, params DbArg[] args)
+        {
+            load.Ct.ThrowIfCancellationRequested();
+            var fb = await ListAsync<T>(new AdapterArgs(key) { Query = sql }.ForTransaction(load.Handler, false), args.ToAgwArgs());
+            if (!fb.Status && load.ThrowErrors) throw new InvalidOperationException(fb.Message ?? "ListAsync failed.");
+            return fb.Result;
+        }
+
+
         public Task<int> ExecAsync(string sql, DbExecutionLoad load = default, params DbArg[] args) => ExecAsync(_defaultAdapterKey,sql, load, args);
         public Task<T?> ScalarAsync<T>(string sql, DbExecutionLoad load = default, params DbArg[] args) => ScalarAsync<T>(_defaultAdapterKey, sql, load, args);
         public Task<DbRow?> RowAsync(string sql, DbExecutionLoad load = default, params DbArg[] args) => RowAsync(_defaultAdapterKey, sql,load, args);
         public Task<DbRows> RowsAsync(string sql, DbExecutionLoad load = default, params DbArg[] args) =>RowsAsync(_defaultAdapterKey,sql,load, args);
+        public Task<IReadOnlyList<T>> ListAsync<T>(string sql, DbExecutionLoad load = default, params DbArg[] args) => ListAsync<T>(_defaultAdapterKey, sql, load, args);
     }
 }

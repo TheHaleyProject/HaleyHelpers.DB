@@ -22,7 +22,7 @@ namespace Haley.Utils {
         public Task<T?> ScalarAsync<T>(string sql, DbExecutionLoad load = default, params DbArg[] args) => _agw.ScalarAsync<T>(_key, sql, load: load, args);
         public Task<DbRow?> RowAsync(string sql, DbExecutionLoad load = default, params DbArg[] args) => _agw.RowAsync(_key, sql, load, args);
         public Task<DbRows> RowsAsync(string sql, DbExecutionLoad load = default, params DbArg[] args) => _agw.RowsAsync(_key, sql, load, args);
-
+        public Task<IReadOnlyList<T>> ListAsync<T>(string sql, DbExecutionLoad load = default, params DbArg[] args) => _agw.ListAsync<T>(_key, sql, load: load, args);
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
         public ITransactionHandler CreateNewTransaction() {

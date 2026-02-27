@@ -9,18 +9,22 @@ namespace Haley.Utils {
             //if (input is List<Dictionary<string, object>> dicList && dicList.Count() > 0) {
             if (input is List<Dictionary<string, object>> dicList) {
                 switch (filter) {
-                    case ResultFilter.FullList:
-                    return dicList;
-                    case ResultFilter.FullListValues:
+                    case ResultFilter.FlattenedValuesList:
                     return dicList.SelectMany(p => p.Values.Select(q => q)).ToList(); //may be empty
-                    case ResultFilter.FullListValueArray:
+                    case ResultFilter.NestedValuesList:
                     return dicList.Select(p => p.Values.ToList()).ToList();
+                    case ResultFilter.FirstColumnValuesList:
+                        // return dicList.Select(p=> p.Values.FirstOrDefault()).ToList(); //No need for select many as we are only trying to fetch one value from each dictionary
+                        //What if all dictionaries are not properly ordered?
+                            var firstKey = dicList.FirstOrDefault()?.Keys.FirstOrDefault();
+                            if (firstKey == null) return new List<object>();
+                            return dicList.Select(d => d.TryGetValue(firstKey, out var v) ? v : null).Where(p=> p != null).ToList();
                     case ResultFilter.FirstDictionary:
                     return dicList.FirstOrDefault(); //may be null
                     case ResultFilter.FirstDictionaryValue:
-                        if (dicList.FirstOrDefault() == null) return null;
-                        if (dicList.FirstOrDefault()?.FirstOrDefault() != null) return dicList.FirstOrDefault().FirstOrDefault().Value;
-                        return dicList.FirstOrDefault()?.FirstOrDefault();
+                        var firstKvp = dicList.FirstOrDefault()?.FirstOrDefault();
+                        if (firstKvp == null) return null;
+                        return firstKvp.Value;
                 }
             }
             return input;
