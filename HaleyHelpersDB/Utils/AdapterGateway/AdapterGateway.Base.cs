@@ -66,7 +66,7 @@ namespace Haley.Utils {
             return result.SetStatus(true);
         }
 
-        private static (string cstr, TargetDB dbtype) SplitConnectionString(string connectionString) {
+        public static (string cstr, TargetDB dbtype) SplitConnectionString(string connectionString) {
             string conStr = connectionString;
             TargetDB targetType = TargetDB.unknown;
             var dic = conStr.ToDictionarySplit(';'); //Get the dictionary split first.
