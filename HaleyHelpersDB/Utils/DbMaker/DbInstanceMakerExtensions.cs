@@ -37,21 +37,21 @@ namespace Haley.Utils {
         }
 
         #region Wrapper making 
-        public static DbInstanceMaker WithConnectionString(this DbInstanceMaker input,string con_string) {
+        public static T WithConnectionString<T>(this T input,string con_string) where T:DbInstanceMaker {
             input.ConnectionString = con_string;
             return input;
         }
-        public static DbInstanceMaker WithAdapterKey(this DbInstanceMaker input, string adapterKey) {
+        public static T WithAdapterKey<T>(this T input, string adapterKey) where T : DbInstanceMaker {
             input.AdapterKey = adapterKey;
             return input;
         }
-        public static DbInstanceMaker WithProvider(this DbInstanceMaker input, IServiceProvider provider) {
+        public static T WithProvider<T>(this T input, IServiceProvider provider) where T : DbInstanceMaker {
             input.ServiceProvider = provider;
             return input;
         }
 
         #endregion
-        public static async Task<string> Initialize(this DbInstanceMaker input, IAdapterGateway agw) {
+        public static async Task<string> Initialize<T>(this T input, IAdapterGateway agw) where T : DbInstanceMaker {
 
             if (input == null) throw new ArgumentException(nameof(input));
             bool isInitialized = false;
@@ -82,7 +82,7 @@ namespace Haley.Utils {
 
             } while (false);
 
-            if (string.IsNullOrWhiteSpace(adapterKey)) throw new ArgumentException($@"Unable to initialize the database for {input.ReplaceDbName}. {errMessage}");
+            if (string.IsNullOrWhiteSpace(adapterKey)) throw new ArgumentException($@"Unable to initialize the database for {typeof(T)}. {errMessage}");
             return adapterKey;
         }
     }
