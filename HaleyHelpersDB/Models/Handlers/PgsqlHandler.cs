@@ -15,7 +15,7 @@ namespace Haley.Models {
     internal class PgsqlHandler : SqlHandlerBase {
         static ConcurrentDictionary<string, NpgsqlDataSource> _dataSources = new ConcurrentDictionary<string, NpgsqlDataSource>();
         protected override string ProviderName { get; } = "PGSQL";
-        public PgsqlHandler(string constring) : base(constring) { }
+        public PgsqlHandler(ConInfo conInfo) : base(conInfo) { }
         //NpgsqlDataSource.Create(input.Conn)
         protected override IDbCommand CreateWrappedCommand(object conn) {
             if (conn is NpgsqlDataSource npgs) return npgs.CreateCommand();
@@ -37,15 +37,15 @@ namespace Haley.Models {
                 throw new NotImplementedException();
             }
         }
-        protected override object GetConnection(string conStr, bool forTransaction) {
+        protected override object GetConnection(ConInfo conInfo, bool forTransaction) {
             //if (TransactionMode) return NpgsqlDataSource.Create(conStr).CreateConnection();
             if (_transaction != null) return _connection; //use the same connection 
             //if (forTransaction) {
                
             //}
 
-            if (!_dataSources.ContainsKey(conStr)) _dataSources.TryAdd(conStr, NpgsqlDataSource.Create(conStr));
-            return _dataSources[conStr].CreateConnection();
+            if (!_dataSources.ContainsKey(conInfo.ConString)) _dataSources.TryAdd(conInfo.ConString, NpgsqlDataSource.Create(conInfo.ConString));
+            return _dataSources[conInfo.ConString].CreateConnection();
         }
 
         protected override IDbDataParameter GetParameter() {

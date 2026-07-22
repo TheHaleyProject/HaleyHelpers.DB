@@ -10,13 +10,22 @@ namespace Haley.Models {
 
     internal class MysqlHandler : SqlHandlerBase {
         protected override string ProviderName { get; } = "MYSQL";
-        protected override object GetConnection(string conStr, bool forTransaction) {
+
+        protected override object GetConnection(ConInfo conInfo, bool forTransaction) {
             if (_transaction != null) return _connection; //use the same connection 
-            return new MySqlConnection(conStr);
+            if (conInfo.IgnoreSsl == true) {
+                var builder = new MySqlConnectionStringBuilder(conInfo.ConString) {
+                    SslMode = MySqlSslMode.None
+                };
+                return new MySqlConnection(builder.ConnectionString);
+            }
+            return new MySqlConnection(conInfo.ConString);
         }
+
         protected override IDbDataParameter GetParameter() {
             return new MySqlParameter();
         }
-        public MysqlHandler(string constring) : base(constring) { }
+
+        public MysqlHandler(ConInfo conInfo) : base(conInfo) { }
     }
 }

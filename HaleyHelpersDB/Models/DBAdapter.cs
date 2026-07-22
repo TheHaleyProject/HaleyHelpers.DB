@@ -17,17 +17,18 @@ namespace Haley.Models
         //ConcurrentDictionary<TargetDB, ISqlHandler> _handlers = new ConcurrentDictionary<TargetDB, ISqlHandler>();
         #region Public Methods
 
-        ISqlHandler GetHandler(TargetDB target,string constr) {
+        ISqlHandler GetHandler(ConInfo connectionInfo) {
+            var target = connectionInfo?.Target ?? TargetDB.unknown;
             switch (target) {
                 case TargetDB.maria:
                 case TargetDB.mysql:
-                return new MysqlHandler(constr);
+                return new MysqlHandler(connectionInfo);
                 case TargetDB.mssql:
-                return new MssqlHandler(constr);
+                return new MssqlHandler(connectionInfo);
                 case TargetDB.pgsql:
-                return new PgsqlHandler(constr);
+                return new PgsqlHandler(connectionInfo);
                 case TargetDB.sqlite:
-                return new SqliteHandler(constr);
+                return new SqliteHandler(connectionInfo);
                 case TargetDB.unknown:
                 default:
                 throw new ArgumentException($@"Unable to find any matching SQL Handler for the given target : {target}");
@@ -104,7 +105,13 @@ namespace Haley.Models
         //If root config key is null, then update during run-time is not possible.
         internal DBAdapter(IAdapterConfig entry) {
             Info = entry;
-            SQLHandler = GetHandler(Info.DBType,entry.ConnectionString);
+            if (Info.ConnectionInfo == null || string.IsNullOrWhiteSpace(Info.ConnectionInfo.ConString)) {
+                Info.ConnectionInfo = new ConInfo() {
+                    ConString = entry.ConnectionString,
+                    Target = entry.DBType
+                };
+            }
+            SQLHandler = GetHandler(Info.ConnectionInfo);
             Id = Guid.NewGuid();
         }
     }

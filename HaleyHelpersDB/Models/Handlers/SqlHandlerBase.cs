@@ -1,4 +1,5 @@
 ﻿using Haley.Abstractions;
+using Haley.Enums;
 using Haley.Utils;
 using Microsoft.Data.SqlClient;
 using Microsoft.Data.Sqlite;
@@ -24,9 +25,13 @@ namespace Haley.Models {
         protected virtual IDbCommand CreateWrappedCommand(object conn) => throw new NotImplementedException();
         protected abstract string ProviderName { get; }
         bool _disposed;
+        protected ConInfo _conInfo;
         protected string _conString;
         string TupleTypeName = typeof(ValueTuple).FullName!;
-        public SqlHandlerBase(string constr) { _conString = constr; }
+        public SqlHandlerBase(ConInfo conInfo) {
+            _conInfo = conInfo ?? new ConInfo();
+            _conString = _conInfo.ConString;
+        }
         protected DbConnection? _connection;
         protected IDbTransaction? _transaction; //If a transaction is available, then use it.. or else ignore it.
         protected virtual void FillParameterInternal(IDbDataParameter msp, object pvalue) {
@@ -35,7 +40,19 @@ namespace Haley.Models {
             msp.Value = tup[0] ?? DBNull.Value;
             if (tup.Length > 1 && tup[1] is  DbType dbt) msp.DbType = dbt;
         }
-        protected abstract object GetConnection(string conStr, bool forTransaction = false);
+        protected abstract object GetConnection(ConInfo conInfo, bool forTransaction = false);
+
+        protected virtual ConInfo GetTargetConInfo(bool excludeDBInConnectionString = false) {
+            var target = (_conInfo.Clone() as ConInfo) ?? new ConInfo() {
+                ConString = _conString,
+                Target = TargetDB.unknown
+            };
+            if (excludeDBInConnectionString) {
+                target.ConString = target.ConString.RemoveKeys(';', "database");
+            }
+            return target;
+        }
+
         protected virtual IDbCommand GetCommand(object connection) {
             IDbCommand cmd = null;
             if (IsConnectionWrapped(connection)) cmd = CreateWrappedCommand(connection);
@@ -134,15 +151,10 @@ namespace Haley.Models {
             object conn = null;
             try {
                 if (!(input is AdapterArgs)) throw new ArgumentException($@"Input is not derived from {nameof(AdapterArgs)}. Cannot obtain the connection string information.");
-                var targetConStr = _conString;
-                if (input.ExcludeDBInConString) {
-                    //Which means we are trying to do something without the database information.
-                    //Now, in this we need to remove the database information. Because we are only trying to run the operation at the connection level. May be we are trying to create the database here.
-                    targetConStr = _conString.RemoveKeys(';', "database");
-                }
-                conn = GetConnection(targetConStr);
+                var targetConInfo = GetTargetConInfo(input.ExcludeDBInConString);
+                conn = GetConnection(targetConInfo);
                 //INITIATE CONNECTION
-                input.Logger?.LogInformation($@"Opening connection - {targetConStr}");
+                input.Logger?.LogInformation($@"Opening connection - {targetConInfo.ConString}");
                 //conn.Open();
                 if (input.TransactionMode) {
                     if (_transaction == null) throw new ArgumentNullException("This SQL Handler will work only inside a transaction. Transaction appears to be null. Please verify if you have disposed or closed the transaction object.");
@@ -347,13 +359,8 @@ namespace Haley.Models {
 
         public IDBTransaction Begin(bool ExcludeDBInConnectionString = false) {
             if (_transaction != null) throw new Exception("A transaction is already opened. Please commit/rollback the existing transaction.");
-            var constring = _conString;
-            if (ExcludeDBInConnectionString) {
-                //Which means we are trying to do something without the database information.
-                //Now, in this we need to remove the database information. Because we are only trying to run the operation at the connection level. May be we are trying to create the database here.
-                constring = _conString.RemoveKeys(';', "database");
-            }
-            _connection = (DbConnection)GetConnection(constring, true);
+            var conInfo = GetTargetConInfo(ExcludeDBInConnectionString);
+            _connection = (DbConnection)GetConnection(conInfo, true);
             Task.WaitAny(_connection.OpenAsync());
             //After we get the connection, we generate the transaction.
             _transaction = _connection.BeginTransactionAsync().Result;

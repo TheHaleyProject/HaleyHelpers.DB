@@ -19,11 +19,12 @@ namespace Haley.Utils {
         public const string DBNAME_KEY = "database";
         const string DBTYPE_KEY = "dbtype";
         const string SEARCHPATH_KEY = "searchpath";
+        const string SSL_IGNORE = "ssl-ignore";
 
         IConfigurationRoot _cfgRoot;
         IGatewayUtil _util;
 
-        ConcurrentDictionary<string, (string conStr, TargetDB dbtype)> connectionstrings = new ConcurrentDictionary<string, (string cstr, TargetDB dbtype)>();
+        ConcurrentDictionary<string, ConInfo> connectionstrings = new ConcurrentDictionary<string, ConInfo>();
 
         protected string _defaultAdapterKey = string.Empty;
         public bool IsDevelopment { get; protected set; }

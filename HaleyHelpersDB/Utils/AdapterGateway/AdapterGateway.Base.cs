@@ -62,35 +62,71 @@ namespace Haley.Utils {
             infoClone.AdapterKey = newAdapterKey;
             infoClone.ConnectionString = newConStr;
             infoClone.DBName = Convert.ToString(newConStr.GetValue(DBNAME_KEY,';'));
+            infoClone.ConnectionInfo ??= new ConInfo();
+            infoClone.ConnectionInfo.ConString = newConStr;
+            infoClone.ConnectionInfo.Target = infoClone.DBType;
             Add(infoClone, true);
             return result.SetStatus(true);
         }
 
-        public static (string cstr, TargetDB dbtype) SplitConnectionString(string connectionString) {
+        public static ConInfo SplitConnectionString(string connectionString) {
+            var info = new ConInfo() {
+                ConString = connectionString ?? string.Empty,
+                Target = TargetDB.unknown
+            };
             string conStr = connectionString;
-            TargetDB targetType = TargetDB.unknown;
             var dic = conStr.ToDictionarySplit(';'); //Get the dictionary split first.
             //Check if dbtype key exists.
             if (dic.ContainsKey(DBTYPE_KEY)) {
                 switch (dic[DBTYPE_KEY].ToString()?.ToLowerInvariant()) {
                     case "maria":
-                    targetType = TargetDB.maria;
+                    info.Target = TargetDB.maria;
                     break;
                     case "mssql":
-                    targetType = TargetDB.mssql;
+                    info.Target = TargetDB.mssql;
                     break;
                     case "pgsql":
-                    targetType = TargetDB.pgsql;
+                    info.Target = TargetDB.pgsql;
+                    break;
+                    case "sqlite":
+                    info.Target = TargetDB.sqlite;
                     break;
                     case "mysql":
                     default:
-                    targetType = TargetDB.mysql;
+                    info.Target = TargetDB.mysql;
                     break;
                 }
                 dic.Remove(DBTYPE_KEY); //Remove the dbtype key.
-                conStr = dic.Join(';'); //Rebuild the connection string without the dbtype.
             }
-            return (conStr, targetType);
+            if (dic.ContainsKey(SSL_IGNORE)) {
+                info.IgnoreSsl = ParseFlagValue(dic[SSL_IGNORE]);
+                dic.Remove(SSL_IGNORE);
+            }
+            info.ConString = dic.Join(';'); //Rebuild the connection string without Haley metadata.
+            return info;
+        }
+
+        static bool ParseFlagValue(object value) {
+            if (value == null) return true;
+            if (value is bool boolValue) return boolValue;
+            var strValue = value.ToString()?.Trim();
+            if (string.IsNullOrWhiteSpace(strValue)) return true;
+            if (bool.TryParse(strValue, out var parsed)) return parsed;
+
+            switch (strValue.ToLowerInvariant()) {
+                case "1":
+                case "yes":
+                case "y":
+                case "on":
+                return true;
+                case "0":
+                case "no":
+                case "n":
+                case "off":
+                return false;
+                default:
+                return true;
+            }
         }
     }
 }

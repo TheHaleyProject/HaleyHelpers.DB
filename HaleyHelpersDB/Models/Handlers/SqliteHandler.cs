@@ -9,11 +9,11 @@ namespace Haley.Models {
 
     internal class SqliteHandler : SqlHandlerBase {
         protected override string ProviderName { get; } = "SQLITE";
-        public SqliteHandler(string constring) : base(constring) { }
+        public SqliteHandler(ConInfo conInfo) : base(conInfo) { }
         
-        protected override object GetConnection(string conStr, bool forTransaction) {
+        protected override object GetConnection(ConInfo conInfo, bool forTransaction) {
             if (_transaction != null) return _connection; //use the same connection 
-            return new SqliteConnection(conStr);
+            return new SqliteConnection(conInfo.ConString);
         }
        
         protected override IDbDataParameter GetParameter() {
