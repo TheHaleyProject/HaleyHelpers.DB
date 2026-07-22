@@ -59,6 +59,7 @@ namespace Haley.Utils {
                         entry.ConnectionInfo ??= new ConInfo();
                         entry.ConnectionInfo.ConString = entry.ConnectionString;
                         entry.ConnectionInfo.Target = entry.DBType;
+                        entry.ConnectionInfo.IgnoreSsl = connectionData.IgnoreSsl;
 
                         // In case dbtype is unknown then it should not register as we don't know which database handler to use.
                         if (entry.DBType == TargetDB.unknown) {

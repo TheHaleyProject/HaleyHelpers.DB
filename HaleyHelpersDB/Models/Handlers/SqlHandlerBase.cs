@@ -159,7 +159,11 @@ namespace Haley.Models {
                 if (input.TransactionMode) {
                     if (_transaction == null) throw new ArgumentNullException("This SQL Handler will work only inside a transaction. Transaction appears to be null. Please verify if you have disposed or closed the transaction object.");
                 } else if (conn is DbConnection dbc1) {
-                    await dbc1.OpenAsync(); //For pgsql, we don't do this. It is done by NPGSQL source
+                    try {
+                        await dbc1.OpenAsync(); //For pgsql, we don't do this. It is done by NPGSQL source
+                    } catch (Exception ex) {
+                        throw CreateConnectionOpenException(targetConInfo, ex);
+                    }
                 }
 
                 object result = null;
@@ -361,10 +365,47 @@ namespace Haley.Models {
             if (_transaction != null) throw new Exception("A transaction is already opened. Please commit/rollback the existing transaction.");
             var conInfo = GetTargetConInfo(ExcludeDBInConnectionString);
             _connection = (DbConnection)GetConnection(conInfo, true);
-            Task.WaitAny(_connection.OpenAsync());
+            try {
+                _connection.OpenAsync().GetAwaiter().GetResult();
+            } catch (Exception ex) {
+                throw CreateConnectionOpenException(conInfo, ex);
+            }
             //After we get the connection, we generate the transaction.
             _transaction = _connection.BeginTransactionAsync().Result;
             return this;
+        }
+
+        Exception CreateConnectionOpenException(ConInfo conInfo, Exception ex) {
+            return new InvalidOperationException(
+                $"Unable to open {ProviderName} connection. {BuildConnectionSummary(conInfo)}. Error={ex.Message}",
+                ex);
+        }
+
+        string BuildConnectionSummary(ConInfo conInfo) {
+            try {
+                var parts = (conInfo?.ConString ?? string.Empty).ToDictionarySplit(';');
+                var host = GetConnectionPart(parts, "server", "host", "data source", "datasource");
+                var port = GetConnectionPart(parts, "port");
+                var database = GetConnectionPart(parts, "database", "initial catalog");
+                var user = GetConnectionPart(parts, "uid", "user id", "userid", "username", "user");
+                var sslMode = GetConnectionPart(parts, "sslmode", "ssl mode");
+
+                return $"Target={conInfo?.Target}; Host={EmptyAsUnknown(host)}; Port={EmptyAsUnknown(port)}; Database={EmptyAsUnknown(database)}; User={EmptyAsUnknown(user)}; IgnoreSsl={conInfo?.IgnoreSsl}; SslMode={EmptyAsUnknown(sslMode)}";
+            } catch {
+                return $"Target={conInfo?.Target}; IgnoreSsl={conInfo?.IgnoreSsl}";
+            }
+        }
+
+        string GetConnectionPart(Dictionary<string, object> parts, params string[] keys) {
+            if (parts == null || keys == null) return string.Empty;
+            foreach (var key in keys) {
+                if (parts.TryGetValue(key, out var value)) return value?.ToString() ?? string.Empty;
+            }
+            return string.Empty;
+        }
+
+        string EmptyAsUnknown(string value) {
+            return string.IsNullOrWhiteSpace(value) ? "(not set)" : value.Trim();
         }
 
         public void Commit() {

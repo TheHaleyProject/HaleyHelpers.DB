@@ -15,7 +15,7 @@ namespace Haley.Models {
             if (_transaction != null) return _connection; //use the same connection 
             if (conInfo.IgnoreSsl == true) {
                 var builder = new MySqlConnectionStringBuilder(conInfo.ConString) {
-                    SslMode = MySqlSslMode.None
+                    SslMode = MySqlSslMode.
                 };
                 return new MySqlConnection(builder.ConnectionString);
             }

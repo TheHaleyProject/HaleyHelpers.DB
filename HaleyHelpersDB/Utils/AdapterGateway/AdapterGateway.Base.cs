@@ -65,6 +65,7 @@ namespace Haley.Utils {
             infoClone.ConnectionInfo ??= new ConInfo();
             infoClone.ConnectionInfo.ConString = newConStr;
             infoClone.ConnectionInfo.Target = infoClone.DBType;
+            infoClone.ConnectionInfo.IgnoreSsl = existing.Info.ConnectionInfo?.IgnoreSsl;
             Add(infoClone, true);
             return result.SetStatus(true);
         }
