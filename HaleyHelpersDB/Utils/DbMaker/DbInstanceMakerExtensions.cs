@@ -4,6 +4,7 @@ using Haley.Internal;
 using Haley.Models;
 using Haley.Services;
 using Haley.Utils;
+using MySqlConnector;
 using System;
 using System.Text;
 using System.Threading.Tasks;
@@ -13,9 +14,12 @@ namespace Haley.Utils {
         static async Task<IFeedback<string>> InitializeWithConString(this DbInstanceMaker input,  IAdapterGateway agw) {
             var result = new Feedback<string>();
             var adapterKey = RandomUtils.GetString(128).SanitizeBase64();
+            var connection = new MySqlConnectionStringBuilder(input.ConnectionString);
+            if (string.IsNullOrWhiteSpace(connection.Database)) connection.Database = input.FallbackDbName;
             agw.Add(new AdapterConfig() { 
                 AdapterKey = adapterKey,
-                ConnectionString = input.ConnectionString,
+                ConnectionString = connection.ConnectionString,
+                DBName = connection.Database,
                 DBType = TargetDB.maria
             });
 
@@ -26,13 +30,13 @@ namespace Haley.Utils {
 
         static Task<IFeedback> InitializeWithAdapter(this DbInstanceMaker input, IAdapterGateway agw, string? adapterKey = null) {
             //var toReplace = new Dictionary<string, string> { ["lifecycle_state"] = }
-            return agw.CreateDatabase(new DbCreationArgs(adapterKey ?? input.AdapterKey) {
+            return agw.BootstrapDatabaseAsync(new DatabaseBootstrapArgs(adapterKey ?? input.AdapterKey) {
                 ContentProcessor = (content, dbname) => {
                     //Custom processor to set the DB name in the SQL content.
                     return content.Replace(input.ReplaceDbName, dbname);
                 },
-                FallBackDBName = input.FallbackDbName,
-                SQLContent = input.SqlContent,
+                FallbackDatabaseName = input.FallbackDbName,
+                SqlContent = input.SqlContent,
             });
         }
 
