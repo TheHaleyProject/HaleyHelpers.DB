@@ -42,6 +42,13 @@ namespace Haley.Models {
         }
         protected abstract object GetConnection(ConInfo conInfo, bool forTransaction = false);
 
+        internal virtual Task<DatabaseBootstrapOutcome> BootstrapDatabaseAsync(
+            string databaseName,
+            string sql,
+            DatabaseBootstrapArgs args,
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException($"{ProviderName} does not support database bootstrap.");
+
         protected virtual ConInfo GetTargetConInfo(bool excludeDBInConnectionString = false) {
             var target = (_conInfo.Clone() as ConInfo) ?? new ConInfo() {
                 ConString = _conString,
@@ -51,6 +58,58 @@ namespace Haley.Models {
                 target.ConString = target.ConString.RemoveKeys(';', "database");
             }
             return target;
+        }
+
+        protected ConInfo GetDatabaseConInfo(string? databaseName, bool disablePooling = false) {
+            var target = GetTargetConInfo();
+            target.ConString = string.IsNullOrWhiteSpace(databaseName)
+                ? target.ConString.RemoveKeys(';', "database")
+                : target.ConString.ReplaceValue(';', "database", databaseName);
+            if (disablePooling) target.ConString = target.ConString.ReplaceValue(';', "pooling", "false");
+            return target;
+        }
+
+        protected async Task<DbConnection> OpenConnectionAsync(
+            ConInfo connectionInfo,
+            CancellationToken cancellationToken) {
+            var connection = GetConnection(connectionInfo) as DbConnection
+                ?? throw new InvalidOperationException(
+                    $"{ProviderName} did not produce a database connection.");
+            try {
+                await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+                return connection;
+            } catch (Exception exception) {
+                await connection.DisposeAsync().ConfigureAwait(false);
+                throw CreateConnectionOpenException(connectionInfo, exception);
+            }
+        }
+
+        protected async Task<object?> ExecuteScalarOnConnectionAsync(
+            DbConnection connection,
+            string query,
+            DbTransaction? transaction,
+            CancellationToken cancellationToken,
+            params (string key, object value)[] parameters) {
+            await using var command = GetCommand(connection) as DbCommand
+                ?? throw new InvalidOperationException($"{ProviderName} did not produce a database command.");
+            command.CommandText = query;
+            command.Transaction = transaction;
+            FillParameters(command, new AdapterArgs { Query = query }, parameters);
+            return await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        protected async Task<int> ExecuteNonQueryOnConnectionAsync(
+            DbConnection connection,
+            string query,
+            DbTransaction? transaction,
+            CancellationToken cancellationToken,
+            params (string key, object value)[] parameters) {
+            await using var command = GetCommand(connection) as DbCommand
+                ?? throw new InvalidOperationException($"{ProviderName} did not produce a database command.");
+            command.CommandText = query;
+            command.Transaction = transaction;
+            FillParameters(command, new AdapterArgs { Query = query }, parameters);
+            return await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }
 
         protected virtual IDbCommand GetCommand(object connection) {

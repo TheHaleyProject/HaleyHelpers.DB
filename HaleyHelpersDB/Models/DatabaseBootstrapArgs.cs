@@ -2,14 +2,6 @@ using Haley.Enums;
 
 namespace Haley.Models;
 
-[Flags]
-public enum DatabaseBootstrapFlags : long
-{
-    None = 0,
-    CreateDatabaseIfMissing = 1L << 0,
-    DropNewDatabaseOnFailure = 1L << 1
-}
-
 public sealed class DatabaseBootstrapArgs
 {
     public DatabaseBootstrapArgs(string adapterKey)
@@ -34,3 +26,5 @@ public sealed class DatabaseBootstrapArgs
     public Dictionary<string, string> VariablesToReplace { get; set; } = new(StringComparer.Ordinal);
     public Func<string, string, string>? ContentProcessor { get; set; }
 }
+
+internal readonly record struct DatabaseBootstrapOutcome(bool DatabaseCreated);

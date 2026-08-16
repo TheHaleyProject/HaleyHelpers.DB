@@ -4,7 +4,6 @@ using Haley.Internal;
 using Haley.Models;
 using Haley.Services;
 using Haley.Utils;
-using MySqlConnector;
 using System;
 using System.Text;
 using System.Threading.Tasks;
@@ -14,13 +13,17 @@ namespace Haley.Utils {
         static async Task<IFeedback<string>> InitializeWithConString(this DbInstanceMaker input,  IAdapterGateway agw) {
             var result = new Feedback<string>();
             var adapterKey = RandomUtils.GetString(128).SanitizeBase64();
-            var connection = new MySqlConnectionStringBuilder(input.ConnectionString);
-            if (string.IsNullOrWhiteSpace(connection.Database)) connection.Database = input.FallbackDbName;
+            var connection = AdapterGateway.SplitConnectionString(input.ConnectionString);
+            if (connection.Target is TargetDB.unknown) connection.Target = TargetDB.maria;
+            var databaseName = Convert.ToString(connection.ConString.GetValue("database", ';'));
+            if (string.IsNullOrWhiteSpace(databaseName)) databaseName = input.FallbackDbName;
+            connection.ConString = connection.ConString.ReplaceValue(';', "database", databaseName);
             agw.Add(new AdapterConfig() { 
                 AdapterKey = adapterKey,
-                ConnectionString = connection.ConnectionString,
-                DBName = connection.Database,
-                DBType = TargetDB.maria
+                ConnectionString = connection.ConString,
+                ConnectionInfo = connection,
+                DBName = databaseName,
+                DBType = connection.Target
             });
 
             //input.AdapterKey = adapterKey; // Do not try to replace the existing key because we would later need to use the original key (if present) and try that one incase of failure with connection string.

@@ -10,14 +10,14 @@ namespace Haley.Models
     //Each connecton util is expected to contain one connection string within it.
     public class DBAdapter : IDBAdapter {
         public IAdapterConfig Info { get; }  //Read only.
-        internal ISqlHandler SQLHandler { get; }
+        internal SqlHandlerBase SQLHandler { get; }
 
         public Guid Id { get; }
 
         //ConcurrentDictionary<TargetDB, ISqlHandler> _handlers = new ConcurrentDictionary<TargetDB, ISqlHandler>();
         #region Public Methods
 
-        ISqlHandler GetHandler(ConInfo connectionInfo) {
+        SqlHandlerBase GetHandler(ConInfo connectionInfo) {
             var target = connectionInfo?.Target ?? TargetDB.unknown;
             switch (target) {
                 case TargetDB.maria:
@@ -46,6 +46,13 @@ namespace Haley.Models
         } 
 
         public Task<object> NonQuery(IAdapterArgs input, params (string key, object value)[] parameters) => SQLHandler.NonQuery(input, parameters);
+
+        internal Task<DatabaseBootstrapOutcome> BootstrapDatabaseAsync(
+            string databaseName,
+            string sql,
+            DatabaseBootstrapArgs args,
+            CancellationToken cancellationToken) =>
+            SQLHandler.BootstrapDatabaseAsync(databaseName, sql, args, cancellationToken);
 
         public void UpdateDBEntry(IAdapterConfig newentry) {
             Info.Update(newentry);

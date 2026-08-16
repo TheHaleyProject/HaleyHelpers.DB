@@ -16,6 +16,7 @@
     <RepositoryUrl>$(ProjectBaseUrl)Helpers.DB</RepositoryUrl>
     <Description>A simple tool to help connect to different Database providers via single window. It has has other cool features</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReleaseNotes>Added the breaking gateway.BootstrapDatabaseAsync contract with idempotent MariaDB and PostgreSQL bootstrap handlers.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>

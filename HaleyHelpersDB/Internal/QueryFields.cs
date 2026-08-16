@@ -1,12 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Security.Cryptography.Xml;
-using System.Text;
-using System.Xml.Linq;
-
 namespace Haley.Internal {
-    internal class QueryFields {
+    internal static class QueryFields {
         public const string NAME = $@"@{nameof(NAME)}";
+        public const string DATABASE_NAME = $@"@{nameof(DATABASE_NAME)}";
+        public const string LOCK_KEY = $@"@{nameof(LOCK_KEY)}";
+        public const string LOCK_TIMEOUT = $@"@{nameof(LOCK_TIMEOUT)}";
     }
 }
